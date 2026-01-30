@@ -60,29 +60,24 @@ parameters:
 
   shared_targets:
     values:
-      - false
+      - true
 
   # --- PBRL specific ---
   critic_regularizer:
     values: 
       - "none"
 
-  beta_id:
-    values: 
-      - 0.1
-      - 0.15
   pi_operator:
     value: "awr"
 
   awr_temperature:
     values: 
-      - 2.0
       - 0.3
       - 0.1
       - 0.05
   num_critics:
     values: 
-      - 10
+      - 2
 
 
 
