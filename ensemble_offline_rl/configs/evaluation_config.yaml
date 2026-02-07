@@ -36,3 +36,5 @@ parameters:
   sampling_seed:
     value: 42 # used for hyperaparameter sampling, not for training 
 
+  num_updates: # if set, will train for this many steps, otherwise default to 1mil
+    value: 1_000_000

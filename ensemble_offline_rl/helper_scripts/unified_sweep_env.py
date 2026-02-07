@@ -33,6 +33,8 @@ if __name__ == "__main__":
 
     argument_parser.add_argument("--runs", type=int, default=20, help="The number of runs to train for")
 
+    argument_parser.add_argument("--num_updates", type=int, default=1000000, help="The number of epochs to train for")
+
 
     argument_parser.add_argument("--sampling_seed", type=int, default=42,
                                  help="The seed used for hyperparameter sampling")
@@ -82,6 +84,8 @@ if __name__ == "__main__":
         sampled_config["dataset_source"] = args.dataset_source
         sampled_config["dataset_name"] = args.dataset
         sampled_config["seed"] = seed
+
+        sampled_config["num_updates"] = args.num_updates
 
         # wandb
         sampled_config["wandb_team"] = args.entity
