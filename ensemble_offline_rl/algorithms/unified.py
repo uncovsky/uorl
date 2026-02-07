@@ -29,19 +29,12 @@ from infra.dataset import OfflineDatasetWrapper
 from infra.utils import linear_schedule, constant_schedule, \
     exponential_schedule, combined_schedule, print_args
 
-# For diversity logs
-from infra.utils.diversity_utils import prepare_ood_dataset, \
-        get_diversity_statistics, compute_qvalue_statistics, diversity_loss
-
-from infra.utils.visualization import visualize_q_vals
-
 from infra.models.actor import TanhGaussianActor, EntropyCoef
 from infra.models.critic import VectorQ, PriorVectorQ
 
 from infra.checkpoints import create_checkpoint_dir, get_experiment_dirname, save_train_state
 
 os.environ["XLA_FLAGS"] = "--xla_gpu_triton_gemm_any=True"
-
 
 @dataclass
 class Args:
@@ -63,16 +56,16 @@ class Args:
     wandb_group: str = "debug"
 
     # --- Environment ---
-    action_scale: float = 1.0 # Scale action space from [-1, 1]^d to [-scale, scale]^d
+    action_scale: float = 1.0 # Scale action space from [-1, 1]^d to [-scale, scale]^d, not needed for d4rl
 
-    # --- Generic optimization ---
+    # --- Generic hyperparameters ---
     actor_lr: float = 1e-4
     lr: float = 3e-4
     batch_size: int = 256
     gamma: float = 0.99
     polyak_step_size: float = 0.005
 
-    # --- SAC-N ---
+    # --- Ensemble size ---
     num_critics: int = 10
 
     # --- Policy Evaluation ---
@@ -87,36 +80,25 @@ class Args:
     no_entropy_bonus: bool = False # enable / disable entropy bonus
 
     # --- Critic Regularization ---
-    # see infra/ensemble_training/critic_regularization
-    critic_regularizer: str = "none" # \in {"none", "cql", "pbrl", "msg"}
-    critic_lagrangian: float = 1.0
     critic_depth: int = 3
     critic_norm: str = "none" # \in {"none", "layer"}
+    critic_regularizer: str = "none" # \in {"none", "cql", "pbrl", "msg"}
+    critic_lagrangian: float = 1.0
     critic_regularizer_parameter : int = 1 # Num of sampled actions for PBRL, temp for CQL
 
-    # --- experimental OOD filtering in PBRL ---
-    filtering_quantile: float = 0.05 # don't penalize least x% of states
-
-    # --- Diversity Regularization ---
-    # see infra/ensemble_training/ensemble_regularization
+    # --- Diversity Regularization
     ensemble_regularizer : str = "none" # \in {"none", "edac", "std"}
-    
     reg_lagrangian: float = 1.0
 
-    # --- Additional Logs ---
-    diversity_logs: bool = False # Log std and disagreement
-    visualizations: bool = False # Plot Q-values in initial state
-
     """
-        Unused hyperparameters, 
+        Unused hyperparameters, randomized priors + pretraining
     """
-    #randomized prior support
     prior: bool = False
     randomized_prior_depth : int = 3
     randomized_prior_scale : float = 1.0
 
     # ---  Pretraining ---
-    # see infra/ensemble_trianing/pretraining.py
+    # see infra/ensemble_training/pretraining.py
     pretrain_updates : int = 0
     pretrain_loss : str = "bc+sarsa"
     pretrain_lagrangian: float = 1.0
@@ -140,8 +122,8 @@ def create_train_state(args, rng, network, dummy_input, lr=None):
         )
 
 
-def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset,
-                    ood_obs=None, ood_actions=None):
+def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
+
     """
     Make JIT-compatible agent train step.
 
@@ -266,9 +248,11 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset,
                     q_std = q_pred.std(-1)
                     actions = actions_pi
             else:
+                # min_Q/lcb_Q actor loss (SAC/MSG/PBRL)
                 rng = jax.random.split(rng, args.batch_size)
                 loss, entropy, q_target, q_std, actions, advantages = jax.vmap(_compute_loss)(rng, batch)
 
+            # Action distance for logging
             mean_dist = jnp.square(actions - batch.action).mean()
 
             return loss.mean(), (entropy.mean(), q_target.mean(), q_target.std(), mean_dist, advantages.mean())
@@ -420,38 +404,6 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset,
         # Add logs from critic regularizer loss
         for k, v in logs.items():
             loss[k] = v
-
-
-        if args.diversity_logs:
-
-            # --- DIVERSITY: get EDAC diversity loss ---
-            diversity_loss_val = diversity_loss(q_apply_fn,
-                                                agent_state,
-                                                batch.obs,
-                                                batch.action,
-                                                args.num_critics)
-
-            # --- DIVERSITY: sample random actions and eval ---
-            rng_perturb, rng = jax.random.split(rng)
-            diversity_stats = get_diversity_statistics(q_apply_fn, actor_apply_fn,
-                                                       agent_state, rng_perturb,
-                                                       batch.obs, batch.action)
-
-            # --- DIVERSITY: get info on OOD data for locomotion datasets ---
-            if ood_obs is not None and ood_actions is not None:
-                ood_stats = compute_qvalue_statistics(q_apply_fn,
-                                                      agent_state,
-                                                      ood_obs,
-                                                      ood_actions)
-                # Add to logs
-                for k, v in ood_stats.items():
-                    loss[f"ood_{k}"] = v
-
-            loss["edac_loss"] = diversity_loss_val
-            for k, v in diversity_stats.items():
-                loss[f"diversity_{k}"] = v
-            loss["std_ratio"] = diversity_stats["uniform_q_std"] / diversity_stats["batch_q_std"]
-
         return (rng, agent_state), loss
 
     return _train_step
@@ -471,40 +423,6 @@ def train(args):
         json.dump(asdict(args), f, indent=2)
 
     print("Saving experiment data to ", exp_dir)
-
-    """
-        Setup OOD dataset if diversity logs are enabled
-    """
-
-    def is_locomotion_dataset(dataset_name):
-        names = ["hopper", "halfcheetah", "walker2d"]
-        return any(name in dataset_name for name in names)
-
-    if args.diversity_logs and is_locomotion_dataset(args.dataset_name):
-
-        """
-            get a different dataset, on which we will evaluate
-            ensemble diversity stats (std, disagreement)
-        """
-        print("Preparing OOD dataset for diversity logs...")
-
-        """
-            prepare a different dataset
-        """
-
-        ood_dataset_name = args.dataset_name.split("-")[0] + "-expert-v2"
-        if args.dataset_name == ood_dataset_name:
-            # If expert dataset, use medium
-            ood_dataset_name = args.dataset_name.split("-")[0] + "-medium-v2"
-        rng, rng_ood = jax.random.split(rng)
-        ood_obs, ood_actions = prepare_ood_dataset(rng_ood,
-                                                  dataset_name=ood_dataset_name,
-                                                  ood_samples=50)
-
-        args.log = True # Force logging if diversity logs are enabled
-    else:
-        # Don't pass any OOD data
-        ood_obs, ood_actions = None, None
 
     # --- Initialize logger ---
     if args.log:
@@ -577,7 +495,6 @@ def train(args):
     # --- Make train step ---
     _agent_train_step_fn = make_train_step(
         args, actor_net.apply, q_apply, alpha_net.apply, dataset,
-        ood_obs=ood_obs, ood_actions=ood_actions
     )
 
     # --- Make pretrain step ---
@@ -662,15 +579,10 @@ def train(args):
             wandb.log(log_dict)
 
 
-
-
     # Save final checkpoint for evaluation
     if args.checkpoint:
         ckpt_dir = create_checkpoint_dir(exp_dir)
         save_train_state(agent_state, ckpt_dir, num_evals + pretrain_evals)
-
-    if args.visualizations:
-        visualize_q_vals(args, agent_state, dataset, q_apply)
 
     # --- Evaluate final agent ---
     if args.eval_final_episodes > 0:
