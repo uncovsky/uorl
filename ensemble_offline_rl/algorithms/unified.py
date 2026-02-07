@@ -35,6 +35,7 @@ from infra.models.critic import VectorQ, PriorVectorQ
 from infra.checkpoints import create_checkpoint_dir, get_experiment_dirname, save_train_state
 
 os.environ["XLA_FLAGS"] = "--xla_gpu_triton_gemm_any=True"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 @dataclass
 class Args:
