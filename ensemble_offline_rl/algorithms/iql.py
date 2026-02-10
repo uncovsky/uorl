@@ -267,7 +267,7 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, value_apply_fn, dataset):
 
     return _train_step
 
-def train(Args):
+def train(args):
     rng = jax.random.PRNGKey(args.seed)
 
     # --- Initialize logger ---

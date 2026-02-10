@@ -1,8 +1,8 @@
-from algorithms.unified import train, Args
 import argparse
 import yaml
 import random
 import importlib
+
 
 def sample_config(config_dict):
     sampled_config = {}
@@ -32,6 +32,7 @@ def load_config(config_path):
     try:
         with open(f"configs/{config_path}.yaml", "r") as f:
             config = yaml.safe_load(f)
+
     except Exception as e:
         print(f"Error loading config file: {e}")
 
@@ -40,21 +41,46 @@ def load_config(config_path):
         parameters = config["parameters"]
     else:
         parameters = config
-
     return parameters
 
-def load_train_fn(module_path, fn_name="train"):
-    """
-        dynamically load train fn from algo module
-    """
+def cast_to_native_types(config):
+    """Convert all numeric values to native Python types for JAX compatibility."""
+
+    casted = {}
+    for key, value in config.items():
+        if isinstance(value, str):
+            # Try to convert string to float (handles scientific notation like '1e-3')
+            try:
+                # Check if it looks like a number
+                if 'e' in value.lower() or '.' in value or value.replace('-', '').isdigit():
+                    # Try float first (handles '1e-3', '0.001', etc.)
+                    casted[key] = float(value)
+                else:
+                    casted[key] = value
+            except ValueError:
+                # Not a number, keep as string
+                casted[key] = value
+        elif isinstance(value, (int, float)):
+            # Explicitly cast to Python native types
+            if isinstance(value, float):
+                casted[key] = float(value)
+            else:
+                casted[key] = int(value)
+        elif isinstance(value, bool):
+            casted[key] = bool(value)
+        else:
+            casted[key] = value
+    return casted
+
+
+def load_train_fn(module_name, function_name):
     try:
-        module = importlib.import_module(module_path)
-        train_fn = getattr(module, fn_name)
+        module = importlib.import_module(module_name)
+        train_fn = getattr(module, function_name)
         return train_fn
     except Exception as e:
         print(f"Error loading training function: {e}")
         return None
-
 
 
 if __name__ == "__main__":
@@ -77,7 +103,7 @@ if __name__ == "__main__":
                                  help="The name of the dataset to use.")
 
     argument_parser.add_argument("--algorithm", type=str,
-                                 default="sac_n",
+                                 default="unified_sacn",
                                  help="Config name of the algorithm to train with.")
 
     # wandb entity and project
@@ -108,17 +134,21 @@ if __name__ == "__main__":
 
         # Rewrite dataset settting + train seed
         sampled_config["algorithm"] = args.algorithm
-        sampled_config["dataset_source"] = args.dataset_source
         sampled_config["dataset_name"] = args.dataset
         sampled_config["seed"] = seed
         sampled_config["num_updates"] = args.num_updates
         sampled_config["eval_final_episodes"] = args.num_eval_eps
 
+        # For unified, we need to specify the dataset source (e.g. d4rl, etc.)
+        if "dataset_source" in sampled_config:
+            sampled_config["dataset_source"] = args.dataset_source
+
         # wandb
         sampled_config["wandb_team"] = args.entity
         sampled_config["wandb_project"] = args.project
+        sampled_config = cast_to_native_types(sampled_config)
 
-        args = Args(**sampled_config)
-        train(args)
+        args = argparse.Namespace(**sampled_config)
+        train_fn(args)
 
     print("All runs completed.")

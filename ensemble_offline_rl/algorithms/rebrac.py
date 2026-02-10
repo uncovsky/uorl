@@ -143,7 +143,7 @@ def create_train_state(args, rng, network, dummy_input):
     return TrainState.create(
         apply_fn=network.apply,
         params=network.init(rng, *dummy_input),
-        tx=optax.adam(args.lr, eps=1e-5),
+        tx=optax.adam(float(args.lr), eps=1e-5),
     )
 
 
