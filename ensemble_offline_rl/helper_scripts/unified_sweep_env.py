@@ -64,6 +64,7 @@ if __name__ == "__main__":
 
     argument_parser.add_argument("--num_updates", type=int, default=1000000, help="The number of epochs to train for")
 
+    argument_parser.add_argument("--num_eval_eps", type=int, default=1000, help="The number of episodes to evaluate for")
 
     argument_parser.add_argument("--sampling_seed", type=int, default=42,
                                  help="The seed used for hyperparameter sampling")
@@ -111,6 +112,7 @@ if __name__ == "__main__":
         sampled_config["dataset_name"] = args.dataset
         sampled_config["seed"] = seed
         sampled_config["num_updates"] = args.num_updates
+        sampled_config["eval_final_episodes"] = args.num_eval_eps
 
         # wandb
         sampled_config["wandb_team"] = args.entity
