@@ -142,9 +142,6 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
     def _train_step(runner_state, _):
         rng, agent_state = runner_state
 
-        # --- Get scheduled hyperparams ---
-        step = agent_state.train_step
-
         # --- Sample batch ---
         rng, rng_batch = jax.random.split(rng)
         batch_indices = jax.random.randint(
@@ -317,9 +314,6 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
         ensemble_reg_loss = ensemble_regularizer_fn(agent_state, rng_reg, batch)
         critic_reg_loss = critic_regularizer_fn(agent_state, rng_critic, batch)
 
-        rng, rng_pi = jax.random.split(rng, 2)
-
-
         """
             Main critic update (TD+regularizers)
         """
@@ -362,7 +356,6 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
 
         (critic_loss, (logs, regularizer_loss, critic_regularizer_loss, q_pred_mean,
                        q_pred_std)), critic_grad = _q_loss_fn(agent_state.vec_q.params)
-
 
         """
             Update critic ensemble
@@ -437,9 +430,6 @@ def train(args):
 
     dataset_wrapper = OfflineDatasetWrapper(source=args.dataset_source,
                                             dataset=args.dataset_name)
-
-
-
     # --- Initialize environment and dataset ---
     rng, rng_env = jax.random.split(rng)
     env = dataset_wrapper.get_eval_env(args.eval_workers, rng_env)

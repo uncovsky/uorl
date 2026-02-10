@@ -12,7 +12,7 @@ parameters:
   # --- Experiment ---
   seed:
     values: [0, 1, 2, 3, 4]
-  dataset:
+  dataset_name:
     values:
       - halfcheetah-medium-v2
   algorithm:

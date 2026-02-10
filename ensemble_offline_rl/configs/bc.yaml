@@ -12,7 +12,7 @@ parameters:
   # --- Experiment ---
   seed:
     value: 0
-  dataset-name:
+  dataset_name:
     values:
       - hopper-medium-v2
   algorithm:
