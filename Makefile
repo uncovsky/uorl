@@ -4,7 +4,7 @@ build:
 	docker build . -t unifloral
 up:
 	docker run -d \
-	    --volume $(shell pwd):/app \
+	    --volume $(shell pwd)/ensemble_offline_rl:/app/ensemble_offline_rl \
 	    --name uni \
 	    unifloral tail -f /dev/null
 	docker exec -it uni bash
@@ -15,7 +15,7 @@ attach:
 up-gpu:
 	docker run -d \
 	    --gpus "device=0" \
-	    --volume $(shell pwd):/app \
+	    --volume $(shell pwd)/ensemble_offline_rl:/app/ensemble_offline_rl \
 	    --name uni \
 	    unifloral tail -f /dev/null
 	docker exec -it uni bash
