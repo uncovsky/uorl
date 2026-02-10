@@ -2,11 +2,11 @@ command:
   - python3
   - ${program}
   - ${args_no_boolean_flags}
-entity: ensemble_offline_rl
+entity: ahoj
 method: random
-name: cql
+name: independent_awac
 program: algorithms/unified.py
-project: ensemble_offline_rl
+project: awac-unifloral-eval
 
 parameters:
   # --- Experiment ---
@@ -18,7 +18,7 @@ parameters:
     values: 
       - hopper-medium-v2
   algorithm:
-    value: cql
+    value: awac
   num_updates:
     value : 1_000_000
   eval_interval:
@@ -32,40 +32,44 @@ parameters:
   log:
     value: true
   checkpoint_dir:
-    value: "./checkpoints/cql"
+    value: "./checkpoints/awac"
   checkpoint:
     value: false
-
   # --- Generic optimization ---
   lr:
-    values: [1e-4, 3e-4]
-
+    value: 3e-4
+  actor_lr:
+    value: 1e-4
   batch_size:
     value: 256
   gamma:
     value: 0.99
   polyak_step_size:
     value: 0.005
-
-
-  # --- CQL specific ---
-  critic_regularizer:
-    value: "cql"
-
-  actor_lr:
-    values: [3e-5, 1e-4, 3e-4]
-
-  num_critics:
-    value: 2
-
-  shared_targets:
+  no_entropy_bonus:
     value: true
 
-  pi_operator:
-    value: "min"
+  # 2 shared critics
+  shared_targets:
+    values:
+      - true
+  num_critics:
+    value: 
+      - 2
+  critic_regularizer:
+    values: 
+      - "none"
 
-  beta_id:
-    value: 0.0
-  critic_lagrangian:
-    values: [0.1, 1.0, 5.0, 10.0]
+  # policy improvement
+  pi_operator:
+    value: "awr"
+
+  awr_temperature:
+    values: 
+      - 0.05
+      - 0.1
+      - 0.3
+
+
+
   

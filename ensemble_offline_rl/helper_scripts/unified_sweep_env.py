@@ -2,12 +2,12 @@ from algorithms.unified import train, Args
 import argparse
 import yaml
 import random
+import importlib
 
 def sample_config(config_dict):
     sampled_config = {}
     data = None
     for key, value in config_dict.items():
-
         # preprocess
         if "values" in value:
             data = value["values"]
@@ -23,10 +23,39 @@ def sample_config(config_dict):
         if isinstance(data, list):
             sampled_config[key] = random.choice(data)
         else:
+            # only one value
             sampled_config[key] = data
-
-
     return sampled_config
+
+
+def load_config(config_path):
+    try:
+        with open(f"configs/{config_path}.yaml", "r") as f:
+            config = yaml.safe_load(f)
+    except Exception as e:
+        print(f"Error loading config file: {e}")
+
+    # Can be wandb sweep yaml, or just plain yaml with parameters
+    if "parameters" in config:
+        parameters = config["parameters"]
+    else:
+        parameters = config
+
+    return parameters
+
+def load_train_fn(module_path, fn_name="train"):
+    """
+        dynamically load train fn from algo module
+    """
+    try:
+        module = importlib.import_module(module_path)
+        train_fn = getattr(module, fn_name)
+        return train_fn
+    except Exception as e:
+        print(f"Error loading training function: {e}")
+        return None
+
+
 
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(description="Run an experiment with the unified algorithm.")
@@ -55,23 +84,20 @@ if __name__ == "__main__":
     argument_parser.add_argument("--project", type=str, default=None, help="The wandb project to log to.")
     args = argument_parser.parse_args()
 
-
     """
         Get algo config, sample hyperparams, run N training loops
     """
-
-    with open(f"configs/{args.algorithm}.yaml", "r") as f:
-        config = yaml.safe_load(f)
-
-    # Can be wandb sweep yaml, or just plain yaml with parameters
-    if "parameters" in config:
-        parameters = config["parameters"]
-    else:
-        parameters = config
-
-    # sample from the parameters
+    parameters = load_config(args.algorithm)
     random.seed(args.sampling_seed)
-    
+
+    """
+        dynamically load the training method
+    """
+    if "unified" in args.algorithm:
+        train_fn = load_train_fn("algorithms.unified", "train")
+    else:
+        train_fn = load_train_fn(f"algorithms.{args.algorithm}", "train")
+
     print(f"Running {args.runs} runs of algorithm {args.algorithm}:")
 
     for seed, run in enumerate(range(1, args.runs + 1)):
@@ -84,7 +110,6 @@ if __name__ == "__main__":
         sampled_config["dataset_source"] = args.dataset_source
         sampled_config["dataset_name"] = args.dataset
         sampled_config["seed"] = seed
-
         sampled_config["num_updates"] = args.num_updates
 
         # wandb
@@ -92,8 +117,6 @@ if __name__ == "__main__":
         sampled_config["wandb_project"] = args.project
 
         args = Args(**sampled_config)
-        for key, value in sampled_config.items():
-            print(f"{key}: {value}")
         train(args)
 
     print("All runs completed.")

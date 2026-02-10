@@ -2,11 +2,11 @@ command:
   - python3
   - ${program}
   - ${args_no_boolean_flags}
-entity: ahoj
+entity: ensemble_offline_rl
 method: random
-name: independent_awac
+name: edac
 program: algorithms/unified.py
-project: awac-unifloral-eval
+project: ensemble_offline_rl
 
 parameters:
   # --- Experiment ---
@@ -18,7 +18,7 @@ parameters:
     values: 
       - hopper-medium-v2
   algorithm:
-    value: awac
+    value: edac
   num_updates:
     value : 1_000_000
   eval_interval:
@@ -32,44 +32,35 @@ parameters:
   log:
     value: true
   checkpoint_dir:
-    value: "./checkpoints/uwac_eval"
+    value: "./checkpoints/cql"
   checkpoint:
     value: false
   # --- Generic optimization ---
   lr:
-    value: 3e-4
+    value: 0.0003
   actor_lr:
-    value: 1e-4
+    value: 0.0003
   batch_size:
     value: 256
   gamma:
     value: 0.99
   polyak_step_size:
     value: 0.005
-  no_entropy_bonus:
-    value: true
+
+
+  # --- EDAC specific ---
+  num_critics:
+    values: [10, 20, 50]
+
+  critic_regularizer:
+    value: "none"
+  ensemble_regularizer:
+    value: "edac"
+  reg_lagrangian:
+    values: [0.0, 1.0, 5.0, 10.0, 100.0, 200.0, 500.0, 1000.0]
 
   shared_targets:
-    values:
-      - true
-
-  # --- PBRL specific ---
-  critic_regularizer:
-    values: 
-      - "none"
-
+    value: true
   pi_operator:
-    value: "awr"
-
-  awr_temperature:
-    values: 
-      - 0.3
-      - 0.1
-      - 0.05
-  num_critics:
-    values: 
-      - 2
-
-
-
+    value: "min"
   

@@ -18,7 +18,6 @@ import wandb
 
 os.environ["XLA_FLAGS"] = "--xla_gpu_triton_gemm_any=True"
 
-
 @dataclass
 class Args:
     # --- Experiment ---
@@ -168,11 +167,8 @@ def make_train_step(args, actor_apply_fn, dataset):
     return _train_step
 
 
-if __name__ == "__main__":
-    # --- Parse arguments ---
-    args = tyro.cli(Args)
+def train(args):
     rng = jax.random.PRNGKey(args.seed)
-
     # --- Initialize logger ---
     if args.log:
         wandb.init(
@@ -261,3 +257,8 @@ if __name__ == "__main__":
 
     if args.log:
         wandb.finish()
+
+if __name__ == "__main__":
+    # --- Parse arguments ---
+    args = tyro.cli(Args)
+    train(args)

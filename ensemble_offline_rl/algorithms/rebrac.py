@@ -308,10 +308,7 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, dataset_name):
 
     return _train_step
 
-
-if __name__ == "__main__":
-    # --- Parse arguments ---
-    args = tyro.cli(Args)
+def train(args):
     rng = jax.random.PRNGKey(args.seed)
 
     # --- Initialize logger ---
@@ -409,3 +406,9 @@ if __name__ == "__main__":
     env.close()
     if args.log:
         wandb.finish()
+
+
+if __name__ == "__main__":
+    # --- Parse arguments ---
+    args = tyro.cli(Args)
+    train(args)

@@ -267,10 +267,7 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, value_apply_fn, dataset):
 
     return _train_step
 
-
-if __name__ == "__main__":
-    # --- Parse arguments ---
-    args = tyro.cli(Args)
+def train(Args):
     rng = jax.random.PRNGKey(args.seed)
 
     # --- Initialize logger ---
@@ -284,8 +281,8 @@ if __name__ == "__main__":
         )
 
     # --- Initialize environment and dataset ---
-    env = gym.vector.make(args.dataset, num_envs=args.eval_workers)
-    dataset = d4rl.qlearning_dataset(gym.make(args.dataset))
+    env = gym.vector.make(args.dataset_name, num_envs=args.eval_workers)
+    dataset = d4rl.qlearning_dataset(gym.make(args.dataset_name))
     dataset = Transition(
         obs=jnp.array(dataset["observations"]),
         action=jnp.array(dataset["actions"]),
@@ -331,7 +328,7 @@ if __name__ == "__main__":
         # --- Evaluate agent ---
         rng, rng_eval = jax.random.split(rng)
         returns = eval_agent(args, rng_eval, env, agent_state)
-        scores = d4rl.get_normalized_score(args.dataset, returns) * 100.0
+        scores = d4rl.get_normalized_score(args.dataset_name, returns) * 100.0
 
         # --- Log metrics ---
         step = (eval_idx + 1) * args.eval_interval
@@ -352,14 +349,14 @@ if __name__ == "__main__":
         print(f"Evaluating final agent for {final_iters} iterations...")
         _rng = jax.random.split(rng, final_iters)
         rets = onp.array([eval_agent(args, _rng, env, agent_state) for _rng in _rng])
-        scores = d4rl.get_normalized_score(args.dataset, rets) * 100.0
+        scores = d4rl.get_normalized_score(args.dataset_name, rets) * 100.0
         agg_fn = lambda x, k: {k: x, f"{k}_mean": x.mean(), f"{k}_std": x.std()}
         info = agg_fn(rets, "final_returns") | agg_fn(scores, "final_scores")
 
         # --- Write final returns to file ---
         os.makedirs("final_returns", exist_ok=True)
         time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"{args.algorithm}_{args.dataset}_{time_str}.npz"
+        filename = f"{args.algorithm}_{args.dataset_name}_{time_str}.npz"
         with open(os.path.join("final_returns", filename), "wb") as f:
             onp.savez_compressed(f, **info, args=asdict(args))
 
@@ -369,3 +366,8 @@ if __name__ == "__main__":
     env.close()
     if args.log:
         wandb.finish()
+
+if __name__ == "__main__":
+    # --- Parse arguments ---
+    args = tyro.cli(Args)
+    train(args)

@@ -24,17 +24,17 @@ parameters:
 
   algorithm: # name of algo, must correspond to config in configs/
     values:
-      - sac_n
-      - edac
-      - msg
-      - pbrl
-      - cql
-      - awac
-      - u_awac
+      - unified_sacn
+      - unified_edac
+      - unified_msg
+      - unified_pbrl
+      - unified_cql
+      - bc # baselines from Unifloral
+      - rebrac
+      - iql
   runs:
     value: 20 # Impliticly use seeds [1, #runs] to train policies
   sampling_seed:
     value: 42 # used for hyperaparameter sampling, not for training 
-
   num_updates: # if set, will train for this many steps, otherwise default to 1mil
     value: 1_000_000
