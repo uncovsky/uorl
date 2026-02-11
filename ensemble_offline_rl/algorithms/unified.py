@@ -282,7 +282,6 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
                             bootstrap_actions)
         """
             Evaluate PE operator
-
             construct bootstrap for each critic Q_i
         """
         if args.shared_targets:
@@ -301,11 +300,14 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
         """
         td_target = jnp.expand_dims(batch.reward, -1) + args.gamma * jnp.expand_dims((1 - batch.done), -1) * next_v_target
 
-        # --- Get specialized regularizer loss function with current state ---
+        """
+            Get specialized regularizer loss function with current state
+
+            samples actions from current policy, construct targets, etc,
+            returns differentiable function used in critic update
+        """
         rng, rng_reg, rng_reg_loss = jax.random.split(rng, 3)
         rng, rng_critic, rng_critic_loss = jax.random.split(rng, 3)
-
-        # --- Construct closures around regularizer functions - sample actions, etc---
         ensemble_reg_loss = ensemble_regularizer_fn(agent_state, rng_reg, batch)
         critic_reg_loss = critic_regularizer_fn(agent_state, rng_critic, batch)
 
@@ -343,7 +345,7 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
             """
             critic_regularizer_loss, logs = critic_reg_loss(q_pred, params, rng_critic_loss, batch)
 
-            
+           
             critic_loss += args.reg_lagrangian * regularizer_loss
             critic_loss += critic_regularizer_loss
 
