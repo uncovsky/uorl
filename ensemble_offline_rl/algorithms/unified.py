@@ -186,18 +186,15 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
         @partial(jax.value_and_grad, has_aux=True)
         def _actor_loss_function(params, rng):
 
-            def _compute_loss(rng, transition):
+            def sac_q_loss(rng, transition):
                 pi = actor_apply_fn(params, transition.obs)
-
                 sampled_action, log_pi = pi.sample_and_log_prob(seed=rng)
-
                 log_pi = log_pi.sum()
 
                 q_values = q_apply_fn(
                             agent_state.vec_q.params,
                             transition.obs, sampled_action
                            )
-
                 std_q = q_values.std(-1)
 
                 """
@@ -208,47 +205,45 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
 
                 elif args.pi_operator == "lcb":
                     q_tgt = q_values.mean(-1) - args.actor_lcb_penalty * std_q
-
                 advantages = jnp.array(0.0)  # Dummy for AWR compatibility
-
                 return -q_tgt + alpha * log_pi, -log_pi, q_tgt, std_q, sampled_action, advantages
 
 
 
-            if args.pi_operator == "awr":
-                    pi = actor_apply_fn(params, batch.obs)
-
-                    # the AWR actor is a clipped gaussian
-                    actions_pi, log_probs = pi.sample_and_log_prob(seed=rng)
-                    actions_pi = jnp.clip(actions_pi, -args.action_scale, args.action_scale)
-
-                    q_pred = q_apply_fn(
-                            agent_state.vec_q.params,
-                            batch.obs, batch.action
-                    )
-
-                    q_values = q_apply_fn(
-                            agent_state.vec_q.params,
-                            batch.obs, actions_pi
-                    )
-
-                    bc = pi.log_prob(batch.action).sum(-1)
-                    adv = q_pred.min(-1) - q_values.min(-1)
-                    advantages = adv
-
-                    adv = adv / args.awr_temperature
-                    exp_adv = jnp.exp(adv).clip(max=args.awr_weight_clip)
-                    exp_adv = jax.lax.stop_gradient(exp_adv)
-
-                    loss = -(exp_adv * bc).mean()
-                    entropy = -log_probs.sum(-1)
-                    q_target = q_pred.mean(-1)
-                    q_std = q_pred.std(-1)
-                    actions = actions_pi
-            else:
+            if args.pi_operator != "awr":
                 # min_Q/lcb_Q actor loss (SAC/MSG/PBRL)
                 rng = jax.random.split(rng, args.batch_size)
-                loss, entropy, q_target, q_std, actions, advantages = jax.vmap(_compute_loss)(rng, batch)
+                loss, entropy, q_target, q_std, actions, advantages = jax.vmap(sac_q_loss)(rng, batch)
+            else:
+                pi = actor_apply_fn(params, batch.obs)
+
+                # the AWR actor is a clipped gaussian
+                actions_pi, log_probs = pi.sample_and_log_prob(seed=rng)
+                entropy = -log_probs.sum(-1)
+                actions_pi = jnp.clip(actions_pi, -args.action_scale, args.action_scale)
+
+                q_pred = q_apply_fn(
+                        agent_state.vec_q.params,
+                        batch.obs, batch.action
+                )
+                q_values = q_apply_fn(
+                        agent_state.vec_q.params,
+                        batch.obs, actions_pi
+                )
+                q_target = q_pred.mean(-1)
+                q_std = q_pred.std(-1)
+
+                bc = pi.log_prob(batch.action).sum(-1)
+                # Q(s,a) - V(s)
+                adv = q_pred.min(-1) - q_values.min(-1)
+                advantages = adv
+
+                adv = adv / args.awr_temperature
+                exp_adv = jnp.exp(adv).clip(max=args.awr_weight_clip)
+                exp_adv = jax.lax.stop_gradient(exp_adv)
+
+                loss = -(exp_adv * bc).mean()
+                actions = actions_pi
 
             # Action distance for logging
             mean_dist = jnp.square(actions - batch.action).mean()
@@ -310,7 +305,7 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
         rng, rng_reg, rng_reg_loss = jax.random.split(rng, 3)
         rng, rng_critic, rng_critic_loss = jax.random.split(rng, 3)
 
-        # --- Construct closures around regularizer functions that sample actions, etc. ---
+        # --- Construct closures around regularizer functions - sample actions, etc---
         ensemble_reg_loss = ensemble_regularizer_fn(agent_state, rng_reg, batch)
         critic_reg_loss = critic_regularizer_fn(agent_state, rng_critic, batch)
 
@@ -331,20 +326,24 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
             critic_loss = critic_loss.sum(-1).mean()
 
             """
-                Ensemble regularizer
+                Ensemble diversity regularizer
 
-                L(Q_ij) += lambda_reg * R(E)
+                L(Q_ij) +=  reg_lagrangian * R(E)
                 where E = {Q_1, ..., Q_N} is the ensemble of critics
+
+                if set to "none", reg. loss is zero
             """
             regularizer_loss = ensemble_reg_loss(params, rng_reg_loss, batch)
 
             """
-                Critic regularizer
+                Critic OOD regularizer (CQL, MSG, ..)
+                the lagrangian is used inside critic_reg_loss directly
 
-                L(Q_ij) += R_ood(Q_i, lambda_ood)
+                L(Q_ij) += R_ood(Q_i, critic_lagrangian)
             """
             critic_regularizer_loss, logs = critic_reg_loss(q_pred, params, rng_critic_loss, batch)
 
+            
             critic_loss += args.reg_lagrangian * regularizer_loss
             critic_loss += critic_regularizer_loss
 
