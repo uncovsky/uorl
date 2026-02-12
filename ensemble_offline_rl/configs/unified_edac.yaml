@@ -32,9 +32,9 @@ parameters:
   log:
     value: true
   checkpoint_dir:
-    value: "./checkpoints/cql"
+    value: "./checkpoints/edac"
   checkpoint:
-    value: false
+    value: true
   # --- Generic optimization ---
   lr:
     value: 0.0003

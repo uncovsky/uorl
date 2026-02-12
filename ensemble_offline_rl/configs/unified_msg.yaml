@@ -53,14 +53,17 @@ parameters:
   critic_regularizer:
     value: "msg"
 
-  pi_operator:
-    value: "lcb"
-
+  # indep + no penalty
+  shared_targets:
+    value: false
   beta_id:
     value: 0.0
 
+  pi_operator:
+    value: "lcb"
   actor_lcb_penalty:
     values: [4.0, 8.0]
+
   critic_lagrangian:
     values: [0, 0.1, 0.5, 1.0, 2.0, 4.0, 8.0]
   num_critics:

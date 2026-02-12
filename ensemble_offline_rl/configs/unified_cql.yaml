@@ -33,7 +33,7 @@ parameters:
   checkpoint_dir:
     value: "./checkpoints/cql"
   checkpoint:
-    value: false
+    value: true
 
   # --- Generic optimization ---
   lr:

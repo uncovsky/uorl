@@ -34,7 +34,7 @@ parameters:
   checkpoint_dir:
     value: "./checkpoints/u_awac"
   checkpoint:
-    value: false
+    value: true
   # --- Generic optimization ---
   lr:
     value: 3e-4

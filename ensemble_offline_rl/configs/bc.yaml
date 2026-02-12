@@ -13,8 +13,7 @@ parameters:
   seed:
     value: 0
   dataset_name:
-    values:
-      - hopper-medium-v2
+    value: hopper-medium-v2
   algorithm:
     value: bc
   num_updates:

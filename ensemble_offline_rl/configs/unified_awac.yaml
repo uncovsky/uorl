@@ -31,15 +31,15 @@ parameters:
   # --- Logging ---
   log:
     value: true
+  checkpoint:
+    value: true
   checkpoint_dir:
     value: "./checkpoints/awac"
-  checkpoint:
-    value: false
   # --- Generic optimization ---
   lr:
     value: 3e-4
   actor_lr:
-    value: 1e-4
+    value: 3e-4
   batch_size:
     value: 256
   gamma:
@@ -59,16 +59,15 @@ parameters:
   critic_regularizer:
     values: 
       - "none"
-
   # policy improvement
   pi_operator:
     value: "awr"
 
   awr_temperature:
     values: 
-      - 0.05
+      - 0.05 # Added due to more success on antmaze
       - 0.1
-      - 0.3
+      - 0.3333
 
 
 

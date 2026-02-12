@@ -5,6 +5,7 @@ command:
 method: grid
 name: evaluation
 program: helper_scripts/unified_sweep_env.py
+entity: ahoj
 project: full_evaluation
 
 parameters:
@@ -21,12 +22,12 @@ parameters:
       - antmaze-large-diverse-v2
       - maze2d-large-v1
       - kitchen-mixed-v0
-
   algorithm: # name of algo, must correspond to config in configs/
     values:
       - unified_sacn
       - unified_edac
       - unified_msg
+      - unified_awac
       - unified_pbrl
       - unified_cql
       - bc # baselines from Unifloral
@@ -38,3 +39,5 @@ parameters:
     value: 42 # used for hyperaparameter sampling, not for training 
   num_updates: # if set, will train for this many steps, otherwise default to 1mil
     value: 1_000_000
+  num_eval_eps:
+    value: 1000

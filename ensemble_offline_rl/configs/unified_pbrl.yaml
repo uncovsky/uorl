@@ -35,7 +35,7 @@ parameters:
   checkpoint_dir:
     value: "./checkpoints/pbrl"
   checkpoint:
-    value: false
+    value: true
   # --- Generic optimization ---
   lr:
     value: 3e-4 
