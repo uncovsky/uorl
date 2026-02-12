@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     argument_parser.add_argument("--dataset_source", type=str, default="d4rl",
                                  help="The source of the dataset.")
-    arument_parser.add_argument("--seed", type=int, default=42, help="Env + sampling seed to use.")
+    argument_parser.add_argument("--seed", type=int, default=42, help="Env + sampling seed to use.")
 
     argument_parser.add_argument("--dataset", type=str,
                                  default="hopper-medium-v2", 
