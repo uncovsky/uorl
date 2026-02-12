@@ -65,6 +65,7 @@ class Args:
     batch_size: int = 256
     gamma: float = 0.99
     polyak_step_size: float = 0.005
+    no_entropy_bonus: bool = False # enable / disable entropy bonus for act/critic
 
     # --- Ensemble size ---
     num_critics: int = 10
@@ -75,21 +76,20 @@ class Args:
 
     # --- Policy Improvement ---
     pi_operator: str = "min" # \in {"min", lcb", "awr"}
-    actor_lcb_penalty: float = 4.0 # Used if operator is lcb to penalize with std
+    actor_lcb_penalty: float = 4.0 # Used if pi_operator is lcb (mean - penalty * std)
     awr_temperature: float = 1.0 # Used if operator is awr
     awr_weight_clip: float = 100.0 # clip exp(adv / temp) to avoid large weights
-    no_entropy_bonus: bool = False # enable / disable entropy bonus
 
     # --- Critic Regularization ---
     critic_depth: int = 3
-    critic_norm: str = "none" # \in {"none", "layer"}
-    critic_regularizer: str = "none" # \in {"none", "cql", "pbrl", "msg"}
-    critic_lagrangian: float = 1.0
-    critic_regularizer_parameter : int = 1 # Num of sampled actions for PBRL, temp for CQL
+    critic_norm: str = "none" # normalization \in {"none", "layer"}
+    critic_regularizer: str = "none" # OOD regularizer \in {"none", "cql", "pbrl", "msg"}
+    critic_lagrangian: float = 1.0 # strength of OOD regularizer
+    critic_regularizer_parameter : int = 1 # misc param - num of sampled actions for PBRL, temp for CQL
 
     # --- Diversity Regularization
-    ensemble_regularizer : str = "none" # \in {"none", "edac", "std"}
-    reg_lagrangian: float = 1.0
+    ensemble_regularizer : str = "none" # ensemble diversity regularizer \in {"none", "edac", "std"}
+    reg_lagrangian: float = 1.0 # strength of ensemble regularizer
 
     """
         Unused hyperparameters, randomized priors + pretraining
@@ -104,13 +104,9 @@ class Args:
     pretrain_loss : str = "bc+sarsa"
     pretrain_lagrangian: float = 1.0
 
-
-
-
 """
     Training state and training step
 """
-
 AgentTrainState = namedtuple("AgentTrainState", "actor vec_q vec_q_target alpha pretrain_lag train_step")
 Transition = namedtuple("Transition", "obs action reward next_obs next_action done")
 
