@@ -284,7 +284,7 @@ def eval_agent_gym(args, rng, env, agent_state):
     def _policy_step(rng, obs):
         pi = agent_state.actor.apply_fn(agent_state.actor.params, obs, eval=True)
         action = pi.sample(seed=rng)
-        return jnp.nan_to_num(action).clip(-1.0, 1.0)
+        return jnp.nan_to_num(action).clip(-args.action_scale, args.action_scale)
 
     max_episode_steps = env.env_fns[0]().spec.max_episode_steps
     while step < max_episode_steps and not returned.all():
@@ -331,7 +331,7 @@ def eval_agent_gymnasium(args, rng, env, agent_state):
     def _policy_step(rng, obs):
         pi = agent_state.actor.apply_fn(agent_state.actor.params, obs, eval=True)
         action = pi.sample(seed=rng)
-        return jnp.nan_to_num(action).clip(-1.0, 1.0)
+        return jnp.nan_to_num(action).clip(-args.action_scale, args.action_scale)
 
     max_episode_steps = env.env_fns[0]().spec.max_episode_steps
     while step < max_episode_steps and not returned.all():
