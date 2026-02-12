@@ -14,12 +14,13 @@ def get_experiment_dirname(args):
             checkpoint_dir/{experiment_dir}/final_returns respectively.
 
     """
-    name = f"{args.algorithm}_{args.dataset_name}"
-    filtered_name = name.replace("/", "_").replace(".", "_")
-    time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    filtered_name = f"{filtered_name}/{time}"
-    filtered_name = f"{args.checkpoint_dir}/{filtered_name}"
 
+    def _filter_name(name):
+        return name.replace("/", "_").replace(".", "_")
+
+    name = f"{_filter_name(args.algorithm)}/{_filter_name(args.dataset_name)}"
+    time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filtered_name = f"{args.checkpoint_dir}/{name}/{time}"
     return filtered_name
 
 def create_checkpoint_dir(exp_dir):
