@@ -16,6 +16,7 @@ import optax
 import tyro
 import wandb
 
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["XLA_FLAGS"] = "--xla_gpu_triton_gemm_any=True"
 
 @dataclass

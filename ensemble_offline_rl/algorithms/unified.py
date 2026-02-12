@@ -402,9 +402,7 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
 
 
 def train(args):
-
     rng = jax.random.PRNGKey(args.seed)
-
     # Get timestamped directory
     exp_dir = get_experiment_dirname(args)
     # Save args to JSON inside the main dir
@@ -414,9 +412,7 @@ def train(args):
         json.dump(asdict(args), f, indent=2)
 
     run_name = f"{args.algorithm}_{args.dataset_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-
     print("Saving experiment data to ", exp_dir)
-
 
     # --- Initialize logger ---
     if args.log:
@@ -439,7 +435,6 @@ def train(args):
     dataset = Transition(
             obs=jnp.array(dataset["observations"]),
             action=jnp.array(dataset["actions"]),
-            # --- Rescale rewards ---
             reward=jnp.array(dataset["rewards"]),
             next_obs=jnp.array(dataset["next_observations"]),
             next_action=jnp.roll(jnp.array(dataset["actions"]), -1, axis=0),
@@ -536,11 +531,9 @@ def train(args):
                 wandb.log(log_dict)
 
     num_evals = (args.num_updates - args.pretrain_updates) // args.eval_interval
-
     """
         Offline Training
     """
-
     print("Starting training")
 
     for eval_idx in tqdm.tqdm(range(num_evals), desc="train epochs"):
