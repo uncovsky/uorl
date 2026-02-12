@@ -41,7 +41,7 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
 
         return _noop_loss_fn
 
-    def pbrl_regularizer(agent_state, rng, batch, use_next_states=False):
+    def pbrl_regularizer(agent_state, rng, batch):
 
         """
             PBRL regularization
@@ -51,10 +51,9 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
             penalization with a fixed coefficient of 0.1.
         """
         # nondifferentiated part
-        rng_curr, rng_next, rng_unif = jax.random.split(rng, 3)
         # Get actions sampled from pi(s) and pi(s')
         pi_curr = actor_apply_fn(agent_state.actor.params, batch.obs)
-        ood_actions, _ = pi_curr.sample_and_log_prob(seed=rng_curr,
+        ood_actions, _ = pi_curr.sample_and_log_prob(seed=rng,
                                                      sample_shape=(args.critic_regularizer_parameter,))
 
         # [action_num, B, action_dim] -> [B, action_num, action_dim]
@@ -62,16 +61,8 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
 
         # Make a (B, num_samples, obs_dim) state tensor for calculating Q vals
         states = jnp.expand_dims(batch.obs, axis=1).repeat(args.critic_regularizer_parameter, axis=1)
-
-        if use_next_states:
-            pi_next = actor_apply_fn(agent_state.actor.params, batch.next_obs)
-            ood_actions_next, _ = pi_next.sample_and_log_prob(seed=rng_next,
-                                                              sample_shape=(args.critic_regularizer_parameter,))
-            next_states = jnp.expand_dims(batch.next_obs,axis=1).repeat(args.critic_regularizer_parameter, axis=1)
-            ood_actions_next = jnp.swapaxes(ood_actions_next, 0, 1)
         
         def _loss_fn(q_pred, critic_params, rng, batch):
-
              # Get Q vals for ood actions
             q_ood = q_apply_fn(critic_params, 
                                states, ood_actions)
@@ -84,31 +75,10 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
             # Sum over ensemble, mean over batch and samples
             ood_loss = jnp.square(q_ood - ood_q_target).sum(axis=-1).mean()
 
-            if use_next_states:
-
-                """
-                    legacy, used in original PBRL for some reason
-                """
-                q_ood_next = q_apply_fn(critic_params,
-                                        next_states, ood_actions_next)
-
-                std_q_ood_next = jnp.std(q_ood_next, axis=-1, keepdims=True)
-                ood_q_target_next = q_ood_next - 0.1 * std_q_ood_next
-                ood_q_target_next = jnp.maximum(ood_q_target_next, 0.0)
-                ood_q_target_next = jax.lax.stop_gradient(ood_q_target_next)
-                ood_loss += jnp.square(q_ood_next - ood_q_target_next).sum(axis=-1).mean()
-            else:
-                q_ood_next = jnp.array(0.0)
-                std_q_ood_next = jnp.array(0.0)
-                ood_q_target_next = jnp.array(0.0)
-
             logs = {
                 "pbrl_ood_q_mean": q_ood.mean(),
-                "pbrl_ood_q_next_mean": q_ood_next.mean(),
                 "pbrl_ood_q_std_mean": std_q_ood.mean(),
-                "pbrl_ood_q_next_std_mean": std_q_ood_next.mean(),
                 "pbrl_ood_q_target_mean": ood_q_target.mean(),
-                "pbrl_ood_q_next_target_mean": ood_q_target_next.mean(),
             }
 
             return ood_loss, logs
@@ -125,11 +95,8 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
 
         pi = actor_apply_fn(agent_state.actor.params, batch.obs)
         pi_next = actor_apply_fn(agent_state.actor.params, batch.next_obs)
-
         pi_actions, _ = pi.sample_and_log_prob(seed=rng_pi)
         pi_next_actions, _ = pi_next.sample_and_log_prob(seed=rng_next)
-
-
         cql_random_actions = jax.random.uniform(
             rng_random, shape=batch.action.shape, minval=-args.action_scale,
             maxval=args.action_scale
@@ -171,9 +138,7 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
             MSG regularizer, a version of CQL regularizer that uses current
             policy as the sampling distribution for OOD actions.
         """
-
         pi_curr = actor_apply_fn(agent_state.actor.params, batch.obs)
-
         ood_actions, _ = pi_curr.sample_and_log_prob(seed=rng,
                                                      sample_shape=(args.critic_regularizer_parameter,))
 
@@ -209,7 +174,7 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
     """
     loss_dict = {
             "none": noop_loss,
-            "pbrl": lambda x, y, z: pbrl_regularizer(x, y, z, use_next_states=False),
+            "pbrl": pbrl_regularizer,
             "msg": msg_regularizer,
             "cql": cql_regularizer,
     }
