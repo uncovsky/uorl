@@ -3,17 +3,17 @@ import yaml
 import random
 import importlib
 
-# Maps datasets to seeds for reproducibility in hyperparam sampling
+# Seed offsets for sampling to ensure reproducibility, while retaining different seeds for each dataset
 DATASET_TO_SAMPLING_SEED = {
     "hopper-medium-v2": 101,
-    "halfcheetah-medium-expert-v2": 102,
-    "walker2d-medium-replay-v2": 103,
-    "pen-human-v1": 201,
-    "pen-cloned-v1": 202,
-    "pen-expert-v1": 203,
-    "antmaze-large-diverse-v2": 301,
-    "maze2d-large-v1": 302,
-    "kitchen-mixed-v0": 401,
+    "halfcheetah-medium-expert-v2": 201,
+    "walker2d-medium-replay-v2": 301,
+    "pen-human-v1": 401,
+    "pen-cloned-v1": 501,
+    "pen-expert-v1": 601,
+    "antmaze-large-diverse-v2": 701,
+    "maze2d-large-v1": 801,
+    "kitchen-mixed-v0": 901,
 }
 
 def sample_config(config_dict):
@@ -99,7 +99,6 @@ def load_train_fn(module_name, function_name):
 if __name__ == "__main__":
     argument_parser = argparse.ArgumentParser(description="Run an experiment with the unified algorithm.")
 
-    argument_parser.add_argument("--runs", type=int, default=20, help="The number of runs to train for")
 
     argument_parser.add_argument("--num_updates", type=int, default=1000000, help="The number of epochs to train for")
 
@@ -107,6 +106,7 @@ if __name__ == "__main__":
 
     argument_parser.add_argument("--dataset_source", type=str, default="d4rl",
                                  help="The source of the dataset.")
+    arument_parser.add_argument("--seed", type=int, default=42, help="Env + sampling seed to use.")
 
     argument_parser.add_argument("--dataset", type=str,
                                  default="hopper-medium-v2", 
@@ -129,9 +129,8 @@ if __name__ == "__main__":
     if args.dataset not in DATASET_TO_SAMPLING_SEED:
         raise ValueError(f"Add a seed for {args.dataset} in DATASET_TO_SAMPLING_SEED.")
 
-    seed = DATASET_TO_SAMPLING_SEED[args.dataset]
-    random.seed(seed)
-
+    task_base_seed = DATASET_TO_SAMPLING_SEED[args.dataset]
+    random.seed(task_base_seed + args.seed)  # Ensure different seeds for runs/datasets
     """
         dynamically load the training method
     """
@@ -140,30 +139,25 @@ if __name__ == "__main__":
     else:
         train_fn, Args = load_train_fn(f"algorithms.{args.algorithm}", "train")
 
-    print(f"Running {args.runs} runs of algorithm {args.algorithm}:")
+    # Sample random hyperparameters
+    sampled_config = sample_config(parameters)
 
-    for seed, run in enumerate(range(1, args.runs + 1)):
+    # Rewrite dataset settting + train seed
+    sampled_config["algorithm"] = args.algorithm
+    sampled_config["dataset_name"] = args.dataset
+    sampled_config["seed"] = args.seed
+    sampled_config["num_updates"] = args.num_updates
+    sampled_config["eval_final_episodes"] = args.num_eval_eps
 
-        # Sample random hyperparameters
-        sampled_config = sample_config(parameters)
+    # For unified, we need to specify the dataset source (e.g. d4rl, etc.)
+    if "dataset_source" in sampled_config:
+        sampled_config["dataset_source"] = args.dataset_source
 
-        # Rewrite dataset settting + train seed
-        sampled_config["algorithm"] = args.algorithm
-        sampled_config["dataset_name"] = args.dataset
-        sampled_config["seed"] = seed
-        sampled_config["num_updates"] = args.num_updates
-        sampled_config["eval_final_episodes"] = args.num_eval_eps
+    # wandb
+    sampled_config["wandb_team"] = args.entity
+    sampled_config["wandb_project"] = args.project
+    sampled_config = cast_to_native_types(sampled_config)
 
-        # For unified, we need to specify the dataset source (e.g. d4rl, etc.)
-        if "dataset_source" in sampled_config:
-            sampled_config["dataset_source"] = args.dataset_source
+    args = Args(**sampled_config)
+    train_fn(args)
 
-        # wandb
-        sampled_config["wandb_team"] = args.entity
-        sampled_config["wandb_project"] = args.project
-        sampled_config = cast_to_native_types(sampled_config)
-
-        args = Args(**sampled_config)
-        train_fn(args)
-
-    print("All runs completed.")
