@@ -247,7 +247,7 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, dataset_name):
             @jax.value_and_grad
             def _q_loss_fn(params):
                 q_pred = q_apply_fn(params, batch.obs, batch.action)
-                q_loss = jnp.square(q_pred - jnp.expand_dims(targets, axis=-1)).sum(-1)
+                q_loss = jnp.square(q_pred - targets).sum(-1)
                 return q_loss.mean()
 
             q_loss, q_grad = _q_loss_fn(agent_state.dual_q.params)
