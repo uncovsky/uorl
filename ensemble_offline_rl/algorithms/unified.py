@@ -417,7 +417,10 @@ def train(args):
     with open(args_path, "w") as f:
         json.dump(asdict(args), f, indent=2)
 
+    run_name = f"{args.algorithm}_{args.dataset_name}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+
     print("Saving experiment data to ", exp_dir)
+
 
     # --- Initialize logger ---
     if args.log:
@@ -426,6 +429,7 @@ def train(args):
                 project=args.wandb_project,
                 entity=args.wandb_team,
                 group=args.wandb_group,
+                name=run_name,
                 job_type="train_agent",
                 )
 
