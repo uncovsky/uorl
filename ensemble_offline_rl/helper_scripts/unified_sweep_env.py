@@ -3,6 +3,18 @@ import yaml
 import random
 import importlib
 
+# Maps datasets to seeds for reproducibility in hyperparam sampling
+DATASET_TO_SAMPLING_SEED = {
+    "hopper-medium-v2": 101,
+    "halfcheetah-medium-expert-v2": 102,
+    "walker2d-medium-replay-v2": 103,
+    "pen-human-v1": 201,
+    "pen-cloned-v1": 202,
+    "pen-expert-v1": 203,
+    "antmaze-large-diverse-v2": 301,
+    "maze2d-large-v1": 302,
+    "kitchen-mixed-v0": 401,
+}
 
 def sample_config(config_dict):
     sampled_config = {}
@@ -77,10 +89,11 @@ def load_train_fn(module_name, function_name):
     try:
         module = importlib.import_module(module_name)
         train_fn = getattr(module, function_name)
-        return train_fn
+        args = getattr(module, "Args")
+        return train_fn, args
     except Exception as e:
         print(f"Error loading training function: {e}")
-        return None
+        return None, None
 
 
 if __name__ == "__main__":
@@ -91,9 +104,6 @@ if __name__ == "__main__":
     argument_parser.add_argument("--num_updates", type=int, default=1000000, help="The number of epochs to train for")
 
     argument_parser.add_argument("--num_eval_eps", type=int, default=1000, help="The number of episodes to evaluate for")
-
-    argument_parser.add_argument("--sampling_seed", type=int, default=42,
-                                 help="The seed used for hyperparameter sampling")
 
     argument_parser.add_argument("--dataset_source", type=str, default="d4rl",
                                  help="The source of the dataset.")
@@ -115,15 +125,20 @@ if __name__ == "__main__":
         Get algo config, sample hyperparams, run N training loops
     """
     parameters = load_config(args.algorithm)
-    random.seed(args.sampling_seed)
+
+    if args.dataset not in DATASET_TO_SAMPLING_SEED:
+        raise ValueError(f"Add a seed for {args.dataset} in DATASET_TO_SAMPLING_SEED.")
+
+    seed = DATASET_TO_SAMPLING_SEED[args.dataset]
+    random.seed(seed)
 
     """
         dynamically load the training method
     """
     if "unified" in args.algorithm:
-        train_fn = load_train_fn("algorithms.unified", "train")
+        train_fn, Args = load_train_fn("algorithms.unified", "train")
     else:
-        train_fn = load_train_fn(f"algorithms.{args.algorithm}", "train")
+        train_fn, Args = load_train_fn(f"algorithms.{args.algorithm}", "train")
 
     print(f"Running {args.runs} runs of algorithm {args.algorithm}:")
 
@@ -148,7 +163,7 @@ if __name__ == "__main__":
         sampled_config["wandb_project"] = args.project
         sampled_config = cast_to_native_types(sampled_config)
 
-        args = argparse.Namespace(**sampled_config)
+        args = Args(**sampled_config)
         train_fn(args)
 
     print("All runs completed.")

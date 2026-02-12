@@ -34,10 +34,8 @@ parameters:
       - rebrac
       - iql
   runs:
-    value: 20 # Impliticly use seeds [1, #runs] to train policies
-  sampling_seed:
-    value: 42 # used for hyperaparameter sampling, not for training 
+    value: 1 # Impliticly use env seeds [1, #runs] to train policies
   num_updates: # if set, will train for this many steps, otherwise default to 1mil
-    value: 1_000_000
+    value: 10_000
   num_eval_eps:
-    value: 1000
+    value: 0
