@@ -35,7 +35,8 @@ from infra.models.critic import VectorQ, PriorVectorQ
 from infra.checkpoints import create_checkpoint_dir, get_experiment_dirname, save_train_state
 
 os.environ["XLA_FLAGS"] = "--xla_gpu_triton_gemm_any=True"
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+#os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.2"
 
 @dataclass
 class Args:
@@ -192,15 +193,14 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
                             transition.obs, sampled_action
                            )
                 std_q = q_values.std(-1)
-
                 """
                     Evaluate PI operator
                 """
                 if args.pi_operator == "min":
                     q_tgt = q_values.min(-1)
-
                 elif args.pi_operator == "lcb":
                     q_tgt = q_values.mean(-1) - args.actor_lcb_penalty * std_q
+
                 advantages = jnp.array(0.0)  # Dummy for AWR compatibility
                 return -q_tgt + alpha * log_pi, -log_pi, q_tgt, std_q, sampled_action, advantages
 
@@ -211,9 +211,8 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
                 rng = jax.random.split(rng, args.batch_size)
                 loss, entropy, q_target, q_std, actions, advantages = jax.vmap(sac_q_loss)(rng, batch)
             else:
+                # AWR - actor is a clipped gaussian
                 pi = actor_apply_fn(params, batch.obs)
-
-                # the AWR actor is a clipped gaussian
                 actions_pi, log_probs = pi.sample_and_log_prob(seed=rng)
                 entropy = -log_probs.sum(-1)
                 actions_pi = jnp.clip(actions_pi, -args.action_scale, args.action_scale)
@@ -271,7 +270,6 @@ def make_train_step(args, actor_apply_fn, q_apply_fn, alpha_apply_fn, dataset):
 
 
         logprobs_next = logprobs_next.sum(-1, keepdims=True)
-
         # --- Bootstrap actions with target nets ---
         next_q = q_apply_fn(agent_state.vec_q_target.params,
                             batch.next_obs,
@@ -408,6 +406,7 @@ def train(args):
     # Save args to JSON inside the main dir
     os.makedirs(exp_dir, exist_ok=True)
     args_path = os.path.join(exp_dir, "args.json")
+
     with open(args_path, "w") as f:
         json.dump(asdict(args), f, indent=2)
 
