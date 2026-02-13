@@ -25,11 +25,11 @@ make build   # Builds the Docker image
 ```
 And then either:
 ```bash
-make up   # Launches the container without GPU access
+make up-cpu  # Launches the container without GPU access
 ```
 or:
 ```bash
-make up-gpu   # Launches w. gpu device 0, requires nvidia container toolkit
+make up   # Launches w. gpu device 0, requires nvidia container toolkit
 
 ```
 You can stop and remove the container by:

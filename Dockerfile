@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.6.0-cudnn-runtime-ubuntu22.04
+FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04
 
 # Install Python 3.10 and mujoco deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -49,10 +49,8 @@ RUN sh install_mujoco.sh
 
 WORKDIR /work/rl/ensemble_offline_rl
 
-
 # install mock envs
 RUN pip install --no-cache-dir -e .
-
 
 # Default command
 CMD ["python"]
