@@ -5,7 +5,7 @@ command:
 method: grid
 name: evaluation
 program: helper_scripts/unified_sweep_env.py
-project: full_evaluation
+project: sparse_ablation
 
 parameters:
   dataset_source:
