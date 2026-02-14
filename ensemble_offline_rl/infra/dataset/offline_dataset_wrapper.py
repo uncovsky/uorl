@@ -141,7 +141,10 @@ class OfflineDatasetWrapper:
         # Initialize the evaluation env
         if self.source == "d4rl":
             # Create a new environment for evaluation
-            self.eval_env = gym.vector.make(self.dataset_name, num_envs=num_workers)
+            # don't use async
+            #self.eval_env = gym.vector.make(self.dataset_name, num_envs=num_workers)
+            self.eval_env = gym.make(self.dataset_name)
+
             return 
 
         # Else minari
@@ -200,7 +203,7 @@ class OfflineDatasetWrapper:
 
         # Evaluate the agent
         if self.source == "d4rl":
-            return eval_agent_gym(args, rng, eval_env, agent_state)
+            return eval_agent_gym_sync(args, rng, eval_env, agent_state)
 
         # Else minari
         return eval_agent_gymnasium(args, rng, eval_env, agent_state)
@@ -252,6 +255,62 @@ def rng_to_integer_seed(rng):
     return int(jax.random.randint(rng, (), 0, jnp.iinfo(jnp.int32).max))
 
 
+def eval_agent_gym_sync(args, rng, env, agent_state):
+
+    cum_reward = onp.zeros(args.eval_workers)
+    disc_reward = onp.zeros(args.eval_workers)
+    rng, rng_reset = jax.random.split(rng)
+    env_name = env.spec.name
+
+    env_lower = env_name.lower()
+
+    mujoco_envs = ["halfcheetah", "hopper", "walker2d"]
+    is_mujoco = any(name in env_lower for name in mujoco_envs)
+
+    if not is_mujoco:
+        warnings.warn("Seeding not supported for non-mujoco envs, eval is nondeterministic")
+
+    max_episode_steps = env.spec.max_episode_steps
+
+    @jax.jit
+    def _policy_step(rng, obs):
+        pi = agent_state.actor.apply_fn(agent_state.actor.params, obs, eval=True)
+        action = pi.sample(seed=rng)
+        return jnp.nan_to_num(action).clip(-args.action_scale, args.action_scale)
+
+    if is_mujoco:
+        obs = env.reset(seed=rng_to_integer_seed(rng_reset))
+    else:
+        obs = env.reset()
+
+    # --- Loop over workers ---
+    for worker_id in range(args.eval_workers):
+
+        # Reset env for this worker
+        done = False
+        step = 0
+        total_reward = 0.0
+        ep_disc_reward = 0.0
+        discount = 1.0
+
+        while step < max_episode_steps and not done:
+            step += 1
+
+            rng, rng_step = jax.random.split(rng)
+            action = _policy_step(rng_step, jnp.array(obs))
+            obs, reward, done, info = env.step(
+                onp.array(action)
+            )
+            total_reward += reward
+            ep_disc_reward += reward * discount
+            discount *= args.gamma
+
+        cum_reward[worker_id] = total_reward
+        disc_reward[worker_id] = ep_disc_reward
+
+    return cum_reward, disc_reward
+
+
 def eval_agent_gym(args, rng, env, agent_state):
     """ 
         Evaluation function that is consistent with gym (D4RL) old API
@@ -262,6 +321,8 @@ def eval_agent_gym(args, rng, env, agent_state):
     step = 0
     returned = onp.zeros(args.eval_workers).astype(bool)
     cum_reward = onp.zeros(args.eval_workers)
+    disc_reward = onp.zeros(args.eval_workers)
+
     rng, rng_reset = jax.random.split(rng)
     rng_reset = jax.random.split(rng_reset, args.eval_workers)
 
@@ -287,6 +348,9 @@ def eval_agent_gym(args, rng, env, agent_state):
         return jnp.nan_to_num(action).clip(-args.action_scale, args.action_scale)
 
     max_episode_steps = env.env_fns[0]().spec.max_episode_steps
+
+    discount = 1.0
+
     while step < max_episode_steps and not returned.all():
         # --- Take step in environment ---
         step += 1
@@ -297,11 +361,13 @@ def eval_agent_gym(args, rng, env, agent_state):
 
         # --- Track cumulative reward ---
         cum_reward += reward * ~returned
+        disc_reward += reward * discount * ~returned
+        discount *= args.gamma
         returned |= done
 
     if step >= max_episode_steps and not returned.all():
         warnings.warn("Maximum steps reached before all episodes terminated")
-    return cum_reward
+    return cum_reward, disc_reward
 
 
 def eval_agent_gymnasium(args, rng, env, agent_state):
@@ -313,7 +379,9 @@ def eval_agent_gymnasium(args, rng, env, agent_state):
     # --- Reset environment ---
     step = 0
     returned = onp.zeros(args.eval_workers).astype(bool)
+
     cum_reward = onp.zeros(args.eval_workers)
+    disc_reward = onp.zeros(args.eval_workers)
 
     rng, rng_reset = jax.random.split(rng)
     rng_reset = jax.random.split(rng_reset, args.eval_workers)
@@ -324,6 +392,7 @@ def eval_agent_gymnasium(args, rng, env, agent_state):
     seeds_reset = [rng_to_integer_seed(rng) for rng in rng_reset]
 
     obs, _ = env.reset(seed=seeds_reset)
+    discount = 1.0
 
     # --- Rollout agent ---
     @jax.jit
@@ -345,8 +414,10 @@ def eval_agent_gymnasium(args, rng, env, agent_state):
 
         # --- Update cumulative reward ---
         cum_reward += reward * ~returned
+        disc_reward += reward * discount * ~returned
+        discount *= args.gamma
 
         # --- Track cumulative reward ---
         returned |= terminated | truncated
-    return cum_reward
+    return cum_reward, disc_reward
 

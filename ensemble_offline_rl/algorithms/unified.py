@@ -441,8 +441,8 @@ def train(args):
             )
 
     # --- Initialize agent and value networks ---
-    num_actions = env.single_action_space.shape[0]
-    dummy_obs = jnp.zeros(env.single_observation_space.shape)
+    num_actions = env.action_space.shape[0]
+    dummy_obs = jnp.zeros(env.observation_space.shape)
     dummy_action = jnp.zeros(num_actions)
 
 
@@ -509,7 +509,7 @@ def train(args):
             # --- Evaluate agent ---
             rng, rng_eval = jax.random.split(rng)
             # Evaluates on env from get_eval_env
-            returns = dataset_wrapper.eval_agent(args, rng_eval, agent_state)
+            returns, disc_returns = dataset_wrapper.eval_agent(args, rng_eval, agent_state)
             scores = dataset_wrapper.get_normalized_score(returns) * 100.0
 
             # --- Log metrics ---
@@ -521,6 +521,7 @@ def train(args):
             if args.log:
                 log_dict = {
                     "return": returns.mean(),
+                    "disc_return": disc_returns.mean(),
                     "score": scores.mean(),
                     "score_std": scores.std(),
                     "num_updates": step,
@@ -546,7 +547,7 @@ def train(args):
 
         # --- Evaluate agent ---
         rng, rng_eval = jax.random.split(rng)
-        returns = dataset_wrapper.eval_agent(args, rng_eval, agent_state)
+        returns, disc_returns = dataset_wrapper.eval_agent(args, rng_eval, agent_state)
         scores = dataset_wrapper.get_normalized_score(returns) * 100.0
 
         # --- Log metrics ---
@@ -555,6 +556,7 @@ def train(args):
         if args.log:
             log_dict = {
                 "return": returns.mean(),
+                "disc_return": disc_returns.mean(),
                 "score": scores.mean(),
                 "score_std": scores.std(),
                 "num_updates": step,
@@ -573,7 +575,7 @@ def train(args):
         final_iters = int(onp.ceil(args.eval_final_episodes / args.eval_workers))
         print(f"Evaluating final agent for {final_iters} iterations...")
         _rng = jax.random.split(rng, final_iters)
-        rets = onp.concatenate([dataset_wrapper.eval_agent(args, _rng, agent_state) for _rng in _rng])
+        rets = onp.concatenate([dataset_wrapper.eval_agent(args, _rng, agent_state)[0] for _rng in _rng])
         print("Returns: ", rets)
         env.close()
         scores = dataset_wrapper.get_normalized_score(rets) * 100.0
