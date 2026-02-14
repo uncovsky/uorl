@@ -1,0 +1,34 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_boolean_flags}
+method: grid
+name: evaluation
+program: helper_scripts/unified_sweep_env.py
+project: full_evaluation
+
+parameters:
+  dataset_source:
+    value: d4rl
+  dataset:
+    values:
+      - antmaze-large-diverse-v2
+      - antmaze-medium-diverse-v2
+      - antmaze-medium-play-v2
+      - antmaze-large-play-v2
+  algorithm: # name of algo, must correspond to config in configs/
+    values:
+      - sparse_ablation/unified_sacn
+      - sparse_ablation/unified_edac
+      - sparse_ablation/unified_pbrl
+      - sparse_ablation/unified_msg
+      - sparse_ablation/unified_msg_actormin # actor ablation
+      - sparse_ablation/unified_msg_shared # shared critics
+      - sparse_ablation/unified_msg_shared_2critics # less shared critics
+      - sparse_ablation/unified_sacn_2critics # less shared critics + no regularization
+  seed:
+    values: [0, 1, 2, 3, 4]  # 5 runs per config
+  num_updates: # Train for 500k
+    value: 500_000
+  num_eval_eps: # eval over 100 eps
+    value: 100
