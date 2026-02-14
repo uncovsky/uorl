@@ -127,9 +127,11 @@ if __name__ == "__main__":
     parameters = load_config(args.algorithm)
 
     if args.dataset not in DATASET_TO_SAMPLING_SEED:
-        raise ValueError(f"Add a seed for {args.dataset} in DATASET_TO_SAMPLING_SEED.")
+        print("Warning: Dataset not found in sampling seed mapping. Using default seed for hyperparam sampling.")
+        task_base_seed = 0
 
-    task_base_seed = DATASET_TO_SAMPLING_SEED[args.dataset]
+    else:
+        task_base_seed = DATASET_TO_SAMPLING_SEED[args.dataset]
     random.seed(task_base_seed + args.seed)  # Ensure different seeds for runs/datasets
     """
         dynamically load the training method
