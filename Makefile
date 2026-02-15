@@ -14,14 +14,20 @@ attach:
 
 up:
 	docker run -d \
-	    --gpus "device=0" \
+	    --device nvidia.com/gpu=all \
 	    --volume $(shell pwd)/ensemble_offline_rl:/work/rl/ensemble_offline_rl:z \
 	    --name uni \
 	    unifloral tail -f /dev/null
-	#docker exec -it uni bash
+	docker exec -it uni bash
+
+up-docker:
+	docker run -d \
+	    --gpus all \
+	    --volume $(shell pwd)/ensemble_offline_rl:/work/rl/ensemble_offline_rl:z \
+	    --name uni \
+	    unifloral tail -f /dev/null
+	docker exec -it uni bash
 
 down:
 	docker stop uni
 	docker rm uni
-
-
