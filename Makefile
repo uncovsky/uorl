@@ -6,7 +6,6 @@ up-cpu:
 	docker run -d \
 	    --volume $(shell pwd)/ensemble_offline_rl:/work/rl/ensemble_offline_rl:z \
 	    --name uni \
-	    --user $(shell id -u):$(shell id -g) \
 	    unifloral tail -f /dev/null
 	docker exec -it uni bash
 
@@ -18,7 +17,6 @@ up:
 	    --gpus "device=0" \
 	    --volume $(shell pwd)/ensemble_offline_rl:/work/rl/ensemble_offline_rl:z \
 	    --name uni \
-	    --user $(shell id -u):$(shell id -g) \
 	    unifloral tail -f /dev/null
 	docker exec -it uni bash
 
