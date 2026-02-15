@@ -18,7 +18,7 @@ up:
 	    --volume $(shell pwd)/ensemble_offline_rl:/work/rl/ensemble_offline_rl:z \
 	    --name uni \
 	    unifloral tail -f /dev/null
-	docker exec -it uni bash
+	#docker exec -it uni bash
 
 down:
 	docker stop uni
