@@ -287,11 +287,13 @@ def eval_agent_gym_sync(args, rng, env, agent_state):
     for worker_id in range(args.eval_workers):
 
         # Reset env for this worker
+
         done = False
         step = 0
         total_reward = 0.0
         ep_disc_reward = 0.0
         discount = 1.0
+        obs = env.reset()
 
         while step < max_episode_steps and not done:
             step += 1
