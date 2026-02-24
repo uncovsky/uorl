@@ -1,0 +1,76 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_boolean_flags}
+entity: ahoj
+method: grid
+name: pbrl
+program: algorithms/unified.py
+project: ensemble_offline_rl
+
+parameters:
+  # --- Experiment ---
+  seed:
+    values: [0, 1, 2]
+  dataset_source:
+    value: d4rl
+  dataset_name:
+    values: 
+      - antmaze-large-diverse-v2
+      - pen-cloned-v1
+  algorithm: 
+  value: pbrl_swept
+  num_updates:
+    value : 500_000
+  eval_interval:
+    value: 10_000
+  eval_workers:
+    value: 8
+  eval_final_episodes:
+    value: 1000
+
+  # --- Logging ---
+  log:
+    value: true
+  checkpoint_dir:
+    value: "./checkpoints/pbrl"
+  checkpoint:
+    value: true
+  # --- Generic optimization ---
+  lr:
+    value: 3e-4 
+  actor_lr:
+    value: 1e-4
+  batch_size:
+    value: 256
+  gamma:
+    value: 0.99
+  polyak_step_size:
+    value: 0.005
+
+  # --- PBRL specific ---
+  critic_regularizer:
+    value: "pbrl"
+
+  # -- ood actions sampled ---
+  critic_regularizer_parameter:
+    value: 4
+
+  pi_operator:
+    value: "min"
+
+  beta_id:
+    values:  
+      - 0.0001 # adroit - 0.0001, mujoco 0.01
+      - 0.001
+      - 0.01
+  critic_lagrangian:
+    values: # adroit - 0.01, mujoco: 0.2 
+      - 0.001
+      - 0.01
+      - 0.1
+  num_critics:
+    values: 
+      - 10
+      - 30
+  
