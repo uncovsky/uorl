@@ -22,9 +22,8 @@ parameters:
       - bias_experiments/unified_awac5
       - bias_experiments/unified_awac10
       - bias_experiments/unified_u_awac
-
-    values: [0, 1, 2, 3, 4]
-      #value: 0
+  seed:
+    values: [0, 1, 2, 3, 4] 
   num_updates: # if set, will train for this many steps, otherwise default to 1mil
     value: 200_000 
   num_eval_eps: # final eval eps
