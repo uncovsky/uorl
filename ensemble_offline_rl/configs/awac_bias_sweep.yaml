@@ -1,0 +1,31 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_boolean_flags}
+method: grid
+name: evaluation
+program: helper_scripts/unified_sweep_env.py
+project: awac_bias_sweep
+
+parameters:
+  dataset_source:
+    value: d4rl
+  dataset:
+    values:
+      - walker2d-medium-replay-v2
+      - pen-cloned-v1
+      - antmaze-medium-diverse-v2
+      - antmaze-large-diverse-v2
+  algorithm: # name of algo, must correspond to config in configs/
+    values:
+      - bias_experiments/unified_awac
+      - bias_experiments/unified_awac5
+      - bias_experiments/unified_awac10
+      - bias_experiments/unified_u_awac
+
+    values: [0, 1, 2, 3, 4]
+      #value: 0
+  num_updates: # if set, will train for this many steps, otherwise default to 1mil
+    value: 200_000 
+  num_eval_eps: # final eval eps
+    value: 0
