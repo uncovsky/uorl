@@ -92,6 +92,10 @@ class Args:
     ensemble_regularizer : str = "none" # ensemble diversity regularizer \in {"none", "edac", "std"}
     reg_lagrangian: float = 1.0 # strength of ensemble regularizer
 
+
+    # --- aux logging 
+    log_q_values: bool = False
+
     """
         Unused hyperparameters, randomized priors + pretraining
     """
@@ -508,9 +512,11 @@ def train(args):
             )
             # --- Evaluate agent ---
             rng, rng_eval = jax.random.split(rng)
+
             # Evaluates on env from get_eval_env
             returns, disc_returns = dataset_wrapper.eval_agent(args, rng_eval, agent_state)
             scores = dataset_wrapper.get_normalized_score(returns) * 100.0
+
 
             # --- Log metrics ---
             step = (eval_idx + 1) * args.eval_interval
@@ -562,6 +568,12 @@ def train(args):
                 "num_updates": step,
                 **{k: loss[k][-1] for k in loss},
             }
+
+            if args.log_q_values:
+                q_vals, disc_rew = dataset_wrapper.q_value_bias(args, rng_eval, agent_state)
+                log_dict["mean_q_bias"] = (q_vals.mean(axis=1) - disc_rew).mean()
+                log_dict["min_q_bias"] = (q_vals.min(axis=1) - disc_rew).mean()
+
             wandb.log(log_dict)
 
 

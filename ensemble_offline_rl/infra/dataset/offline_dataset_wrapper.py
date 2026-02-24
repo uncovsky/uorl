@@ -209,6 +209,11 @@ class OfflineDatasetWrapper:
         return eval_agent_gymnasium(args, rng, eval_env, agent_state)
         
 
+    def q_value_bias(self, args, rng, agent_state):
+        assert self.source == "d4rl", "Q-value bias evaluation is only implemented for d4rl datasets for now."
+
+        return q_value_bias(args, rng, self.eval_env, agent_state)
+
 
     """
         Getters
@@ -249,10 +254,69 @@ class OfflineDatasetWrapper:
     Utils and eval functions for gym/gymnasium environments.
 """
 
-
 # Transform JAX rng key to integer seed for gym envs
 def rng_to_integer_seed(rng):
     return int(jax.random.randint(rng, (), 0, jnp.iinfo(jnp.int32).max))
+
+
+def q_value_bias(args, rng, env, agent_state):
+
+    disc_reward = onp.zeros(args.eval_workers)
+    q_values = onp.zeros((args.eval_workers, args.num_critics))
+
+    rng, rng_reset = jax.random.split(rng)
+    env_name = env.spec.name
+    env_lower = env_name.lower()
+
+    mujoco_envs = ["halfcheetah", "hopper", "walker2d"]
+    is_mujoco = any(name in env_lower for name in mujoco_envs)
+
+    if not is_mujoco:
+        warnings.warn("Seeding not supported for non-mujoco envs, eval is nondeterministic")
+    max_episode_steps = env.spec.max_episode_steps
+    @jax.jit
+    def _policy_step(rng, obs):
+        pi = agent_state.actor.apply_fn(agent_state.actor.params, obs, eval=True)
+        action = pi.sample(seed=rng)
+        return jnp.nan_to_num(action).clip(-args.action_scale, args.action_scale)
+
+    if is_mujoco:
+        obs = env.reset(seed=rng_to_integer_seed(rng_reset))
+    else:
+        obs = env.reset()
+    # --- Loop over workers ---
+    for worker_id in range(args.eval_workers):
+
+        # Reset env for this worker
+
+        done = False
+        step = 0
+        total_reward = 0.0
+        ep_disc_reward = 0.0
+        discount = 1.0
+        obs = env.reset()
+
+        while step < max_episode_steps and not done:
+            step += 1
+
+            rng, rng_step = jax.random.split(rng)
+            action = _policy_step(rng_step, jnp.array(obs))
+
+            # First step, save Q-value
+            if step == 1:
+                q = agent_state.vec_q.apply_fn(agent_state.vec_q.params, jnp.array(obs), action)
+                q_values[worker_id] = onp.array(q)
+
+            obs, reward, done, info = env.step(
+                onp.array(action)
+            )
+            total_reward += reward
+            ep_disc_reward += reward * discount
+            discount *= args.gamma
+
+        disc_reward[worker_id] = ep_disc_reward
+
+    return q_values, disc_reward
 
 
 def eval_agent_gym_sync(args, rng, env, agent_state):
