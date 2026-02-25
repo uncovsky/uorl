@@ -54,8 +54,7 @@ parameters:
     values:
       - true
   num_critics:
-    value: 
-      - 2
+    value: 2
   critic_regularizer:
     values: 
       - "none"

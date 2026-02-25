@@ -68,8 +68,7 @@ parameters:
       - false
   # changes
   num_critics:
-    value: 
-      - 10
+    value: 10
   log_q_values:
     value: true
 
