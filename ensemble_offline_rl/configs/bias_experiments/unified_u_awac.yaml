@@ -70,5 +70,7 @@ parameters:
   num_critics:
     value: 
       - 10
+  log_q_values:
+    value: true
 
   
