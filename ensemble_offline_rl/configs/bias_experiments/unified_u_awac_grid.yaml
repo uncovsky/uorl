@@ -1,0 +1,84 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_boolean_flags}
+entity: ahoj
+method: grid
+name: independent_awac
+program: algorithms/unified.py
+project: awac-unifloral-eval
+
+parameters:
+  # --- Experiment ---
+  seed:
+    values: [0, 1, 2, 3, 4]
+  dataset_source:
+    value: d4rl
+  dataset_name:
+    values: 
+      - walker2d-medium-replay-v2
+      - pen-cloned-v1
+      - antmaze-medium-diverse-v2
+      - antmaze-large-diverse-v2
+  algorithm:
+    value: awac
+  num_updates:
+    value : 500_000
+  eval_interval:
+    value: 10_000
+  eval_workers:
+    value: 8
+  eval_final_episodes:
+    value: 1000
+
+  # --- Logging ---
+  log:
+    value: true
+  checkpoint:
+    value: true
+  checkpoint_dir:
+    value: "./checkpoints/awac"
+  # --- Generic optimization ---
+  lr:
+    value: 3e-4
+  actor_lr:
+    value: 3e-4
+  batch_size:
+    value: 256
+  gamma:
+    value: 0.99
+  polyak_step_size:
+    value: 0.005
+  no_entropy_bonus:
+    value: true
+
+
+  critic_regularizer:
+    values: 
+      - "none"
+  # policy improvement
+  pi_operator:
+    value: "awr"
+  awr_temperature:
+    values: 
+      - 1.0
+  # changes
+  beta_id:
+    values: 
+      - 0.005
+      - 0.01
+      - 0.025
+      - 0.05
+  shared_targets:
+    values:
+      - false
+  # changes
+  num_critics:
+    value: 
+      - 10
+  log_q_values:
+    value: true
+
+
+
+  

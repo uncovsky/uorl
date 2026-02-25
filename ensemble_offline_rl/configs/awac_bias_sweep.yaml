@@ -25,6 +25,6 @@ parameters:
   seed:
     values: [0, 1, 2, 3, 4] 
   num_updates: # if set, will train for this many steps, otherwise default to 1mil
-    value: 200_000 
+    value: 500_000 
   num_eval_eps: # final eval eps
     value: 0
