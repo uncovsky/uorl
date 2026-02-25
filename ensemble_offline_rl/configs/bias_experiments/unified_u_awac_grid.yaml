@@ -37,7 +37,7 @@ parameters:
   checkpoint:
     value: true
   checkpoint_dir:
-    value: "./checkpoints/awac"
+    value: "./checkpoints/u_awac_grid"
   # --- Generic optimization ---
   lr:
     value: 3e-4
@@ -72,13 +72,8 @@ parameters:
   shared_targets:
     values:
       - false
-  # changes
   num_critics:
-    value: 
-      - 10
+    value: 10
   log_q_values:
     value: true
 
-
-
-  
