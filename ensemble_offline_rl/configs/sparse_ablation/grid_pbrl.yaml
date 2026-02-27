@@ -3,11 +3,10 @@ command:
   - ${program}
   - ${args_no_boolean_flags}
 entity: ensemble_offline_rl
-method: random
-name: msg
+method: grid
+name: pbrl
 program: algorithms/unified.py
 project: ensemble_offline_rl
-
 
 parameters:
   # --- Experiment ---
@@ -36,12 +35,12 @@ parameters:
   log:
     value: true
   checkpoint_dir:
-    value: "./checkpoints/sparse_msg_grid"
+    value: "./checkpoints/sparse_pbrl"
   checkpoint:
     value: true
   # --- Generic optimization ---
   lr:
-    value: 3e-4
+    value: 3e-4 
   actor_lr:
     value: 1e-4
   batch_size:
@@ -51,24 +50,25 @@ parameters:
   polyak_step_size:
     value: 0.005
 
-  # --- MSG specific ---
+  # --- PBRL specific ---
   critic_regularizer:
-    value: "msg"
+    value: "pbrl"
 
-  critic_lagrangian:
-    values:
-      - 0.1
-      - 0.2
-      - 0.5
-      - 1.0
-  # indep + no penalty
-  shared_targets:
-    value: false
+  # -- ood actions sampled ---
+  critic_regularizer_parameter:
+    value: 4
 
   pi_operator:
-    value: "lcb"
-  actor_lcb_penalty:
-    value: 4.0
+    value: "min"
+
+  beta_id:
+    value: 0.001
+  critic_lagrangian:
+    values: 
+      - 0.01
+      - 0.02
+      - 0.05
+      - 0.1
   num_critics:
     value: 10
   
