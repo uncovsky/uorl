@@ -103,7 +103,9 @@ def regularizer_factory(args, actor_apply_fn, q_apply_fn):
                 # shape (E, A) ensemble outputs, A inputs (action)
                 action_jac = jax.jacrev(q_apply_fn, argnums=2)(critic_params, obs, action)
                 # shape (E,A), normalized gradients for each ensemble member
-                action_jac /= jnp.linalg.norm(action_jac, axis=-1, keepdims=True) + 1e-6
+                action_jac /= jnp.maximum(
+                                jnp.linalg.norm(action_jac, axis=-1, keepdims=True) + 1e-6,
+                                1e-8)
                 # shape (E,E) pairwise diversity loss
                 div_loss = action_jac @ action_jac.T
                 # Mask diagonal 
