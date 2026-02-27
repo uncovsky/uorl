@@ -1,0 +1,79 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_boolean_flags}
+entity: ahoj
+method: random
+name: ReBRAC
+program: algorithms/urebrac.py
+project: eval
+
+parameters:
+  # --- Experiment ---
+  seed:
+    values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  dataset-name:
+    values: 
+      #- hopper-medium-v2
+      - antmaze-large-diverse-v2
+  algorithm:
+    value: urebrac
+  num_updates:
+    value: 1_000_000
+  eval_interval:
+    value: 2500
+  eval_workers:
+    value: 8
+  eval_final_episodes:
+    value: 1000
+
+  # --- Logging ---
+  log:
+    value: true
+  wandb_project:
+    value: unifloral
+  wandb_team:
+    value: flair
+  wandb_group:
+    value: debug
+
+  # --- Generic optimization ---
+  lr:
+    value: 1e-3
+  batch_size:
+    value: 1024
+  gamma:
+    value: 0.99
+  polyak_step_size:
+    value: 0.005
+
+  # --- TD3+BC ---
+  noise_clip:
+    value: 0.5
+  policy_noise:
+    value: 0.2
+  num_critic_updates_per_step:
+    value: 2
+
+  # --- REBRAC (randomized over)---
+  critic_bc_coef:
+    values: [0, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1]
+  actor_bc_coef:
+    values: [0.0005, 0.001, 0.002, 0.003, 0.03, 0.1, 0.3, 1.0]
+  actor_ln:
+    value: false
+  critic_ln:
+    value: true
+  norm_obs:
+    value: false
+
+  # --- Ensemble-specific ---
+  num_critics:
+    values: 
+      - 10
+      - 30
+
+  beta_id:
+    values: 
+      - 0.01
+      - 0.05
