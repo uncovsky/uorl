@@ -1,0 +1,71 @@
+command:
+  - python3
+  - ${program}
+  - ${args_no_boolean_flags}
+entity: ensemble_offline_rl
+method: random
+name: msg
+program: algorithms/unified.py
+project: ensemble_offline_rl
+
+
+parameters:
+  # --- Experiment ---
+  seed:
+    values: [0, 1, 2, 3, 4]  # 5 runs per config
+  dataset_source:
+    value: d4rl
+  dataset_name:
+    values:
+      - antmaze-large-diverse-v2
+      - antmaze-medium-diverse-v2
+      - antmaze-medium-play-v2
+      - antmaze-large-play-v2
+  algorithm:
+    value: msg
+  num_updates: # Train for 500k
+    value: 500_000
+  eval_interval:
+    value: 10_000
+  eval_workers:
+    value: 8
+  eval_final_episodes:
+    value: 100
+
+  # --- Logging ---
+  log:
+    value: true
+  checkpoint_dir:
+    value: "./checkpoints/sparse_msg_grid"
+  checkpoint:
+    value: true
+  # --- Generic optimization ---
+  lr:
+    value: 3e-4
+  actor_lr:
+    value: 1e-4
+  batch_size:
+    value: 256
+  gamma:
+    value: 0.99
+  polyak_step_size:
+    value: 0.005
+
+  # --- MSG specific ---
+  critic_regularizer:
+    value: "none"
+
+  # indep + no penalty
+  shared_targets:
+    value: false
+  beta_id:
+    values: 
+      - 0.0
+      - 0.05
+      - 0.5
+
+  pi_operator:
+    value: "min"
+  num_critics:
+    value: 10
+  
