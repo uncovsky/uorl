@@ -17,7 +17,7 @@ parameters:
       #- hopper-medium-v2
       - antmaze-large-diverse-v2
   algorithm:
-    value: rebrac
+    value: urebrac
   num_updates:
     value: 1_000_000
   eval_interval:
