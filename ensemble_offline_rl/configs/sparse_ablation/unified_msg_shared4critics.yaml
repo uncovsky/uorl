@@ -69,5 +69,5 @@ parameters:
   critic_lagrangian:
     value: 0.1
   num_critics:
-    value: 6
+    value: 4
   
