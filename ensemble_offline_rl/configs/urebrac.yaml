@@ -53,6 +53,8 @@ parameters:
     value: 0.2
   num_critic_updates_per_step:
     value: 2
+  critic_bc_coef:
+    value: 0.0
   actor_bc_coef:
     values: [0.0005, 0.001, 0.002, 0.003, 0.03, 0.1, 0.3, 1.0]
   actor_ln:
