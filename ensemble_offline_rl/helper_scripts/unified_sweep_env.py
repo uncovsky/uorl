@@ -14,6 +14,9 @@ DATASET_TO_SAMPLING_SEED = {
     "antmaze-large-diverse-v2": 701,
     "maze2d-large-v1": 801,
     "kitchen-mixed-v0": 901,
+    "antmaze-large-play-v2": 1001,
+    "antmaze-medium-diverse-v2": 1101,
+    "antmaze-medium-play-v2": 1101,
 }
 
 def sample_config(config_dict):
