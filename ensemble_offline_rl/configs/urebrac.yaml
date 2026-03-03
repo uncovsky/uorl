@@ -68,5 +68,5 @@ parameters:
       - 10
   beta_id:
     values: 
-      - 0.05
+      - 0.0005
       - 0.001
