@@ -2,11 +2,14 @@ command:
   - python3
   - ${program}
   - ${args_no_boolean_flags}
-entity: ahoj
+entity: ensemble_offline_rl
 method: random
-name: mean_awac_lower_beta
+name: msg
 program: algorithms/unified.py
-project: awac-30-eval-deterministic
+project: ensemble_offline_rl
+
+
+# Ablation, use shared targets with 2 critics
 
 parameters:
   # --- Experiment ---
@@ -18,7 +21,7 @@ parameters:
     values: 
       - hopper-medium-v2
   algorithm:
-    value: u_awac
+    value: msg
   num_updates:
     value : 1_000_000
   eval_interval:
@@ -32,14 +35,14 @@ parameters:
   log:
     value: true
   checkpoint_dir:
-    value: "./checkpoints/u_awac"
+    value: "./checkpoints/sparse_msg_shared_2critics"
   checkpoint:
     value: true
   # --- Generic optimization ---
   lr:
     value: 3e-4
   actor_lr:
-    value: 3e-4
+    value: 1e-4
   batch_size:
     value: 256
   gamma:
@@ -47,39 +50,21 @@ parameters:
   polyak_step_size:
     value: 0.005
 
-  no_entropy_bonus:
-    value: true
 
-  shared_targets:
-    values:
-      - false
-
-  # --- PBRL specific ---
+  # --- MSG specific ---
   critic_regularizer:
-    values: 
-      - "none"
+    value: "msg"
 
+  # indep + no penalty
+  shared_targets:
+    value: true
   beta_id:
-    values: 
-      - 0.005
-      - 0.01
-      - 0.025
-      - 0.05
+    value: 0.0
 
   pi_operator:
-    value: "awr"
-
-  awr_temperature:
-    values: 
-      - 1.0
-      - 0.33
-      - 0.01
-
+    value: "min"
+  critic_lagrangian:
+    value: 0.1
   num_critics:
-    values: 
-      - 10
-      - 30
-
-
-
+    value: 2
   

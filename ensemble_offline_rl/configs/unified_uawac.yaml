@@ -61,7 +61,9 @@ parameters:
 
   beta_id:
     values: 
+      - 0.005
       - 0.01
+      - 0.025
       - 0.05
 
   pi_operator:

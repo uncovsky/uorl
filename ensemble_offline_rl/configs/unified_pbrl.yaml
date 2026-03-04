@@ -63,6 +63,7 @@ parameters:
     values: [0.01, 0.0001] # adroit - 0.0001, mujoco 0.01
   critic_lagrangian:
     values: [0.01, 0.2] # adroit - 0.01, mujoco: 0.2 
+
   num_critics:
     values: [10, 30]
   
