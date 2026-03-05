@@ -12,57 +12,10 @@ import os
 
 
 from tex_setup import set_size
+from evaluation import load_results_dataframe
 
 
 
-def parse_and_load_npz(filename: str) -> Dict:
-    split = filename.split("/")
-    if "unified" in split[3]:
-        algorithm = split[3]
-        dataset = split[4]
-        dt_str = split[5]
-    else:
-        algorithm = split[2]
-        dataset = split[3]
-        dt_str = split[-1].split("_")[-1].replace(".npz", "")
-
-    print(f"Loading {algorithm} on {dataset} from {dt_str}")
-    data = np.load(filename, allow_pickle=True)
-    data = {k: v for k, v in data.items()}
-    data["algorithm"] = algorithm
-    data["dataset"] = dataset
-    data["datetime"] = dt_str
-    data.update(data.pop("args", np.array({})).item())
-
-    if data["algorithm"] == "awac" and data["num_critics"] > 2:
-        data["algorithm"] = "awac_n"
-    return data
-
-
-def load_results_dataframe(results_dir: str = "final_returns") -> pd.DataFrame:
-    npz_files = []
-    for root, dirs, files in os.walk(results_dir):
-        for file in files:
-            if file.endswith(".npz"):
-                npz_files.append(os.path.join(root, file))
-    data_list = []
-
-    for f in npz_files:
-        try:
-            data = parse_and_load_npz(f)
-            data_list.append(data)
-        except Exception as e:
-            print(f"Error loading {f}: {e}")
-            continue
-
-    df = pd.DataFrame(data_list).drop(columns=["Index"], errors="ignore")
-    if "final_scores" in df.columns:
-        df["final_scores"] = df["final_scores"].apply(lambda x: x.reshape(-1))
-    if "final_returns" in df.columns:
-        df["final_returns"] = df["final_returns"].apply(lambda x: x.reshape(-1))
-
-    df = df.sort_values(by=["algorithm", "dataset", "datetime"])
-    return df.reset_index(drop=True)
 
 
 FILTERED_ALGORITHMS = ["unified_edac", "unified_pbrl", "unified_msg", "unified_sacn", "rebrac"]
