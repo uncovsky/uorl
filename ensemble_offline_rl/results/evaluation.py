@@ -48,7 +48,6 @@ r"""
 
 def parse_and_load_npz(filename: str) -> Dict:
     split = filename.split("/")
-    print(split)
     fr_idx = split.index("final_returns")
 
     if split[-1] == "returns.npz":
@@ -60,7 +59,6 @@ def parse_and_load_npz(filename: str) -> Dict:
         dataset   = split[fr_idx - 1]  # antmaze-large-diverse-v2
         dt_str    = split[-1].replace(".npz", "").rsplit("_", 2)[-1]
 
-    print(f"Loading {algorithm} on {dataset} from {dt_str}")
     data = np.load(filename, allow_pickle=True)
     data = {k: v for k, v in data.items()}
     data["algorithm"] = algorithm
