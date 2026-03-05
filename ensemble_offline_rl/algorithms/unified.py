@@ -36,7 +36,7 @@ from infra.checkpoints import create_checkpoint_dir, get_experiment_dirname, sav
 
 os.environ["XLA_FLAGS"] = "--xla_gpu_triton_gemm_any=True"
 #os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.2"
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.8"
 
 @dataclass
 class Args:

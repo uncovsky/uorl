@@ -7,7 +7,7 @@ up-cpu:
 	    --volume $(shell pwd)/ensemble_offline_rl:/work/rl/ensemble_offline_rl:z \
 	    --name uorl \
 	    uorl tail -f /dev/null
-	docker exec -it uni bash
+	docker exec -it uorl bash
 
 up:
 	docker run -d \
@@ -20,5 +20,5 @@ up:
 	    unifloral tail -f /dev/null
 	docker exec -it uorl bash
 down:
-	docker stop uni
-	docker rm uni
+	docker stop uorl
+	docker rm uorl
