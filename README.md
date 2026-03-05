@@ -1,9 +1,8 @@
 # Uncertainty-based Offline Reinforcement Learning
 
-This repository contains the code accompanying our RLC paper evaluating ensemble-based uncertainty quantification methods for offline RL, and proposing U-AWAC and U-BRAC as extensions of policy-constrained baselines 7
-with independently bootstrapped ensembles.
+This repository contains the code accompanying our RLC paper evaluating ensemble-based uncertainty quantification methods for offline RL, and proposing U-AWAC and U-BRAC as extensions of policy-constrained baselines with independently bootstrapped ensembles.
 
-The framework unifies the following algorithms under a common implementation:
+The unified framework is built on top of the [Unifloral](https://github.com/EmptyJackson/unifloral) library and covers the following algorithms:
 
 | Algorithm | Reference |
 |-----------|-----------|
@@ -11,9 +10,15 @@ The framework unifies the following algorithms under a common implementation:
 | **MSG** | [Why So Pessimistic? Estimating Uncertainties for Offline RL through Ensembles, and Why Their Independence Matters](https://arxiv.org/abs/2205.13703) |
 | **PBRL** | [Pessimistic Bootstrapping for Uncertainty-Driven Offline RL](https://arxiv.org/abs/2202.11566) |
 | **AWAC**, **CQL** | Non-ensemble baselines |
-| **U-AWAC**, **U-BRAC** | Our proposed methods |
+| **U-AWAC** | Our proposed method |
 
-Built on top of the [Unifloral](https://github.com/EmptyJackson/unifloral) library.
+The following baselines are implemented independently outside the unified framework:
+
+| Algorithm | Reference |
+|-----------|-----------|
+| **ReBRAC, IQL, BC**"| baselines from unifloral
+| **U-ReBRAC** | Our proposed extension of ReBRAC with independent bootstrap targets |
+
 
 ---
 
@@ -22,11 +27,9 @@ Built on top of the [Unifloral](https://github.com/EmptyJackson/unifloral) libra
 ```
 algorithms/          # Unified algorithmic framework and baselines
 configs/             # Algorithm and experiment configurations
-data/                # Dataset utilities (D4RL and Minari)
 evaluation_scripts/  # Scripts to evaluate trained policies and collect rollouts
-infra/               # Core framework infrastructure
-results/             # Collected rollouts, figures, and visualization scripts
-setup.py             # Package installation
+infra/               # Core framework infrastructure (models, dataset class,..)
+results/             # Collected rollouts, figures, and visualization scripts 
 ```
 
 ### `algorithms/`
@@ -34,7 +37,7 @@ Contains the unified training loop (`unified.py`) shared by all ensemble methods
 
 ### `configs/`
 Two types of configs:
-- **Algorithm configs** (`unified_*.yaml`) — hyperparameter settings that instantiate each algorithm within the unified framework. Refer to these to understand how original algorithm hyperparameters map to framework parameters.
+- **Algorithm configs** (`unified_*.yaml`) — hyperparameter settings that instantiate each algorithm within the unified framework. Refer to these to understand how the original algorithm's hyperparameters map to the framework's parameters.
 - **Experiment configs** (`eval_*.yaml`) — wandb sweep configs defining the hyperparameter spaces used to reproduce experiments from the paper.
 
 ### `infra/`
@@ -49,14 +52,14 @@ Core infrastructure shared across algorithms:
 Contains all experimental data and figures from the paper:
 - `rollouts/` — evaluation rollouts organized by algorithm and dataset
 - Visualization scripts to reproduce all figures from the paper
-  (notably evaluation_plots.ipynb) 
+  (notably the notebook `evaluation_plots.ipynb`) 
 
 ---
 
 ## Installation
 
 
-Or use the provided Docker setup (recommended for full reproducibility):
+We provide a following docker setup
 
 ```bash
 make build       # Build the Docker image
@@ -89,7 +92,7 @@ python evaluation_scripts/unified_sweep_env.py \
 ```
 
 The algorithm entry corresponds to the config loaded from configs/, e.g.
-"unified_msg", "unified_pbrl", "urebrac", "rebrac", "iql".
+"unified_msg", "unified_pbrl", "urebrac", "rebrac", "iql". The methods implemented inside the framework prepend "unified", while other baselines do not.
 
 Use `--help` for the full list of parameters:
 ```bash
