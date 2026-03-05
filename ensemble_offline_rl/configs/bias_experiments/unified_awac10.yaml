@@ -50,7 +50,7 @@ parameters:
     value: true
 
   # 10 shared critics
-  shred_targets:
+  shared_targets:
     values:
       - true
   critic_regularizer:

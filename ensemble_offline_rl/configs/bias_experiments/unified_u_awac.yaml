@@ -58,7 +58,7 @@ parameters:
     value: "awr"
   awr_temperature:
     values: 
-      - 1.0
+      - 0.01
   # changes
   beta_id:
     value: 
