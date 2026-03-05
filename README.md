@@ -83,14 +83,16 @@ script directly:
 
 ```bash
 python evaluation_scripts/unified_sweep_env.py \
-    --algorithm  unified_msg \ # replace with unified_x, urebrac, etc. for other algorithms
-    --dataset_name  antmaze-medium-diverse-v2 \
+    --algorithm  unified_uawac \
+    --dataset  antmaze-medium-diverse-v2 \
     --seed 0
 ```
+
+The algorithm entry corresponds to the config loaded from configs/, e.g.
+"unified_msg", "unified_pbrl", "urebrac", "rebrac", "iql".
 
 Use `--help` for the full list of parameters:
 ```bash
 python evaluation_scripts/unified_sweep_env.py --help
 ```
-
 All algorithms share the training logic implemented in `make_train_step()` in `algorithms/unified.py`. The loop is parameterized by critic regularization and ensemble diversity terms, specified via CLI arguments and implemented in `infra/ensemble_training/`. Algorithm-specific hyperparameter mappings are documented in the corresponding `configs/unified_*.yaml` files.
