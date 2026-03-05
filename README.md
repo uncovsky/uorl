@@ -80,9 +80,8 @@ wandb agent <SWEEP_ID>  # Run the agent with the sweep ID printed by the previou
 ```
 Note that this requires a wandb account and API key. 
 
-
 Alternatively, a single run can be launched without wandb using the evaluation
-script directly:
+script directly. Note that this script performs uniform sampling of training hyperparameters as in our evaluation.
 
 ```bash
 python evaluation_scripts/unified_sweep_env.py \
