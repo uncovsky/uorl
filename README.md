@@ -64,9 +64,16 @@ We provide a following docker setup
 ```bash
 make build       # Build the Docker image
 make up          # Launch with GPU (requires nvidia-container-toolkit)
-make up-cpu      # Launch without GPU
-make down        # Stop and remove the container
+pip install -e . # install the libraries
 ```
+, alternatively to launch with CPU only, use `make up-cpu` instead of `make up`.
+
+
+To close and remove the container, use:
+```bash
+make down
+```
+
 ---
 
 ## Running Experiments

@@ -11,7 +11,7 @@ up-cpu:
 
 up:
 	docker run -d \
-	    --device nvidia.com/gpu=all \
+	    --gpus=all \
 	    --volume $(shell pwd)/ensemble_offline_rl:/work/rl/ensemble_offline_rl:z \
 	    --name uorl \
 	    --shm-size=1g \
