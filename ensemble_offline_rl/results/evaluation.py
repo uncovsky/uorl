@@ -46,42 +46,33 @@ r"""
       \___/     Data loading
 """
 
-
 def parse_and_load_npz(filename: str) -> Dict:
-    """Load data from a result file and parse metadata from filename.
-
-    Args:
-        filename: Path to the .npz result file
-
-    Returns:
-        Dictionary containing loaded arrays and metadata
-    """
-    # Parse filename to extract algorithm, dataset, and timestamp
     split = filename.split("/")
+    print(split)
+    fr_idx = split.index("final_returns")
 
-    if len(split) < 4:
-        data = split[-1].split("_")
-        algorithm = data[0]
-        dataset = data[1]
-        dt_str = data[2]
-
+    if split[-1] == "returns.npz":
+        # unified: .../parent/unified_algo/dataset/datetime/final_returns/returns.npz
+        algorithm = split[fr_idx - 3]  # unified_awac
+        dataset   = split[fr_idx - 2]  # antmaze-large-diverse-v2
+        dt_str    = split[fr_idx - 1]  # 2026-03-03_23-18-49
     else:
-        dt_str = split[-3]
-        algorithm = split[-4].split("_")[0]
-        dataset = split[-4].split("_")[-1]
+        # rebrac/urebrac: .../algo/dataset/final_returns/algo_dataset_datetime.npz
+        algorithm = split[fr_idx - 2]  # rebrac
+        dataset   = split[fr_idx - 1]  # antmaze-large-diverse-v2
+        dt_str    = split[-1].replace(".npz", "").rsplit("_", 2)[-1]
 
+    print(f"Loading {algorithm} on {dataset} from {dt_str}")
     data = np.load(filename, allow_pickle=True)
     data = {k: v for k, v in data.items()}
     data["algorithm"] = algorithm
     data["dataset"] = dataset
     data["datetime"] = dt_str
-    data.update(data.pop("args", np.array({})).item())  # Flatten args
-
-    if data["algorithm"] == "awac" and data["num_critics"] > 2:
-        data["algorithm"] = f"awac_n"
-    if data["algorithm"] == "pbrl" and data["critic_regularizer"] == "filtered_pbrl":
-        data["algorithm"] = f"pbrl_f"
+    data.update(data.pop("args", np.array({})).item())
+    if data["algorithm"] == "awac" and data.get("num_critics", 2) > 2:
+        data["algorithm"] = "awac_n"
     return data
+
 
 
 def load_results_dataframe(results_dir: str = "final_returns") -> pd.DataFrame:
@@ -361,226 +352,6 @@ def bootstrap_bandit_trials(
     }
 
 
-if __name__ == "__main__":
-    """
-        generates the ucb evaluation plots for all algos/datasets
-
-        switch between full eval / uwac eval / filtering eval
-    """
-
-    # Full evaluation data
-    df_full = load_results_dataframe("full_eval_data")
-    # PBRL filtering data
-    df_filter = load_results_dataframe("filter_eval_data")
-
-    # UWAC evaluation data (for ablation and full eval)
-    df_uwac = load_results_dataframe("u_awac_eval_data")
-
-    dfs = [df_full, df_filter, df_uwac, df_uwac]
-    names = ["full", "filter", "u_awac", "awac_n_ablation"]
-
-    for i, df in enumerate(dfs):
-
-        name = names[i]
-
-        fig_dims = set_size(width_fraction=1.0, subplots=(3, 3))
-        fig, axes = plt.subplots(3, 3, figsize=fig_dims,
-                                    sharex=True, sharey=False)
-
-        axes = axes.flatten()
-
-        datasets = df["dataset"].unique()
-        algorithms = df["algorithm"].unique()
-
-        # Create consistent color mapping for algorithms
-        colors = plt.cm.tab10.colors[:10]
-        color_map = {alg: colors[i % len(colors)] for i, alg in enumerate(algorithms)}
-        all_results = {}
-
-        datasets = [
-            "halfcheetah-medium-expert-v2",
-            'pen-human-v1',
-            'kitchen-mixed-v0',
-            'hopper-medium-v2',
-            'pen-cloned-v1',
-            'antmaze-medium-diverse-v2',
-            'walker2d-medium-replay-v2',
-            'pen-expert-v1',
-            'maze2d-large-v1',
-        ]
-
-        """
-            Restrict algorithms to those of interest for each eval type
-            and force color consistency with full eval plot
-        """
-        if name == "u_awac":
-            algorithms = [
-                    'u_awac',
-                    'awac',
-                    'pbrl',
-                    'rebrac',
-           ]
-            color_map = {
-                "rebrac": colors[5],
-                "pbrl": colors[4],
-                "u_awac": colors[0],
-                "awac": colors[3],
-            }
-
-        if name == "filter":
-            color_map = {
-                "pbrl_f": colors[1],
-                "pbrl": colors[4],
-                "awac": colors[3],
-                "rebrac": colors[5],
-            }
-
-        if name == "awac_n_ablation":
-            algorithms = [
-                    'awac_n',
-                    'awac',
-                    'u_awac',
-            ]
-
-            color_map = {
-                    "u_awac": colors[0],
-                    "awac": colors[3],
-                    "awac_n": colors[1],
-            }
-
-
-        print(f"Creating figure for evaluation: {name}, algorithms used {algorithms}")
-
-        for idx, dataset in enumerate(datasets):
-            ax = axes[idx]
-
-            all_results[dataset] = {}
-            
-            for algorithm in algorithms:
-                color = color_map[algorithm]
-
-
-                df_sel = df[(df.dataset == dataset) & (df.algorithm == algorithm)]
-                returns_list = df_sel["final_scores"].tolist()
-
-
-                # Some entries erroneously had extra runs. Trim to first 10.
-                returns_list = returns_list[:10]
-                returns_array = jnp.array(returns_list)
-
-                if len(returns_array) == 0:
-                    continue
-
-                # final_scores_mean
-                means_list = df_sel["final_scores_mean"].tolist()[:10]
-                stds_list = df_sel["final_scores_std"].tolist()[:10]
-
-                
-                mean_of_means = np.mean(means_list)
-                median_of_means = np.median(means_list)
-                std_of_means = np.std(means_list)
-
-                best_idx = np.argmax(means_list)
-                median_idx = np.argsort(means_list)[len(means_list) // 2]
-
-                best_mean = means_list[best_idx]
-                best_std = stds_list[best_idx]
-                median_mean = means_list[median_idx]
-                median_std = stds_list[median_idx]
-
-                # save all
-
-                # Store info for this algorithm
-                all_results[dataset][algorithm] = {
-                    "mean_of_means": float(mean_of_means),
-                    "median_of_means": float(median_of_means),
-                    "std_of_means": float(std_of_means),
-                    "best_mean": float(best_mean),
-                    "best_std": float(best_std),
-                    "median_mean": float(median_mean),
-                    "median_std": float(median_std),
-                }
-
-                results = bootstrap_bandit_trials(
-                    returns_array,
-                    seed=idx,
-                    num_subsample=5,
-                    num_repeats=500,
-                    max_pulls=100,
-                    ucb_alpha=2.0,
-                    n_bootstraps=1000,
-                    confidence=0.95,
-                )
-
-                ax.plot(
-                    results["pulls"],
-                    results["estimated_bests_mean"],
-                    label=algorithm,
-                    color=color,
-                )
-                ax.fill_between(
-                    results["pulls"],
-                    results["estimated_bests_ci_low"],
-                    results["estimated_bests_ci_high"],
-                    alpha=0.3,
-                    color=color
-                )
-
-            # Add grid to each subplot
-            ax.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
-            ax.set_axisbelow(True)  # Put grid behind the data
-            
-            ax.set_xscale("log")  # Logarithmic x-axis
-            ax.set_title(f"{dataset[:-3]}", fontsize=8)
-
-        # Create legend with correct color mapping
-        from matplotlib.lines import Line2D
-
-        legend_handles = [Line2D([0], [0], color=color_map[algorithm], lw=4,
-                                 label=algorithm.replace('_', '-').upper(),
-                                 markersize=8)
-                          for algorithm in algorithms]
-
-        # Place legend BELOW the figure
-        legend = fig.legend(
-            handles=legend_handles,
-            loc='lower center',
-            bbox_to_anchor=(0.5, 0.02),  # Adjust this value to position below
-            ncol=len(algorithms),
-            frameon=True,
-            fancybox=True,
-            framealpha=0.9,
-            columnspacing=0.5,
-            borderpad=0.75,
-            edgecolor='black',
-            fontsize=8,
-        )
-
-        # add x axis and y axis label
-        fig.text(0.5, 0.12, 'Online tuning budget (episodes)', ha='center', fontsize=10)
-        fig.text(0.0, 0.55, 'Mean D4RL score', va='center', rotation='vertical', fontsize=10)
-
-        plt.tight_layout()
-        plt.subplots_adjust(bottom=0.20)  # Increase bottom margin for legend
-        plt.savefig(f"figures/eval_{name}.pdf", dpi=300, bbox_inches='tight')
-
-        rows = []
-        for dataset, algos in all_results.items():
-            for algorithm, stats in algos.items():
-                row = {
-                    "dataset": dataset,
-                    "algorithm": algorithm,
-                    "mean_of_means": stats.get("mean_of_means", None),
-                    "median_of_means": stats.get("median_of_means", None),
-                    "std_of_means": stats.get("std_of_means", None),
-                    "best_mean": stats.get("best_mean", None),
-                    "best_std": stats.get("best_std", None),
-                    "median_mean": stats.get("median_mean", None),
-                    "median_std": stats.get("median_std", None),
-                }
-                rows.append(row)
-
-        df = pd.DataFrame(rows)
-
-        # Export CSV with aggregated results for plots
-        df.to_csv(f"{name}_results.csv", index=False)
+df = load_results_dataframe("rollouts/rebrac")
+print(df['dataset'].unique())
+print(df['algorithm'].unique())
