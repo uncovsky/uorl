@@ -1,6 +1,9 @@
 wandb/
 dynamics_models/
 final_returns/
+ensemble_offline_rl/results/
+ensemble_offline_rl/checkpoints/
+ensemble_offline_rl/data/
 *.png
 *.csv
 **/__pycache__/

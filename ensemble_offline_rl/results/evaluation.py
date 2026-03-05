@@ -52,12 +52,10 @@ def parse_and_load_npz(filename: str) -> Dict:
     fr_idx = split.index("final_returns")
 
     if split[-1] == "returns.npz":
-        # unified: .../parent/unified_algo/dataset/datetime/final_returns/returns.npz
         algorithm = split[fr_idx - 3]  # unified_awac
         dataset   = split[fr_idx - 2]  # antmaze-large-diverse-v2
         dt_str    = split[fr_idx - 1]  # 2026-03-03_23-18-49
     else:
-        # rebrac/urebrac: .../algo/dataset/final_returns/algo_dataset_datetime.npz
         algorithm = split[fr_idx - 2]  # rebrac
         dataset   = split[fr_idx - 1]  # antmaze-large-diverse-v2
         dt_str    = split[-1].replace(".npz", "").rsplit("_", 2)[-1]
@@ -351,7 +349,3 @@ def bootstrap_bandit_trials(
         "estimated_bests_ci_high": ci_high,
     }
 
-
-df = load_results_dataframe("rollouts/rebrac")
-print(df['dataset'].unique())
-print(df['algorithm'].unique())
