@@ -25,6 +25,8 @@ parameters:
       - sparse_ablation/unified_msg_actormin # actor ablation
       - sparse_ablation/unified_msg_shared # shared critics
       - sparse_ablation/unified_msg_shared_2critics # less shared critics
+      - sparse_ablation/unified_msg_shared4critics # less shared critics
+      - sparse_ablation/unified_msg_shared6critics # less shared critics
       - sparse_ablation/unified_sacn_2critics # less shared critics + no regularization
   seed:
     values: [0, 1, 2, 3, 4]  # 5 runs per config
