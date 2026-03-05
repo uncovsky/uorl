@@ -16,7 +16,7 @@ The following baselines are implemented independently outside the unified framew
 
 | Algorithm | Reference |
 |-----------|-----------|
-| **ReBRAC, IQL, BC**"| baselines from unifloral
+| **ReBRAC, IQL, BC**"| baselines from [Unifloral](https://github.com/EmptyJackson/unifloral) |
 | **U-ReBRAC** | Our proposed extension of ReBRAC with independent bootstrap targets |
 
 
