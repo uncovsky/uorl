@@ -1,4 +1,4 @@
-.PHONY: build up down up-gpu
+.PHONY: build up down up-cpu
 
 build:
 	docker build . -t uorl
@@ -20,5 +20,5 @@ up:
 	    uorl tail -f /dev/null
 	docker exec -it uorl bash
 down:
-	docker stop uorl
-	docker rm uorl
+	docker stop uorl || true
+	docker rm uorl || true
