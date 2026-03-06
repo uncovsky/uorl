@@ -17,7 +17,7 @@ up:
 	    --shm-size=1g \
 	    --memory=32g \
 	    --pids-limit=5000 \
-	    unifloral tail -f /dev/null
+	    uorl tail -f /dev/null
 	docker exec -it uorl bash
 down:
 	docker stop uorl
