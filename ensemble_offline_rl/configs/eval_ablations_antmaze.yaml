@@ -12,10 +12,9 @@ parameters:
     value: d4rl
   dataset:
     values:
-      - antmaze-large-diverse-v2
-      - antmaze-medium-diverse-v2
-      - antmaze-medium-play-v2
-      - antmaze-large-play-v2
+      - pen-human-v1
+      - pen-cloned-v1
+      - pen-expert-v1
   algorithm: # name of algo, must correspond to config in configs/
     values:
       - sparse_ablation/unified_sacn
