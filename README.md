@@ -1,7 +1,7 @@
 # Uncertainty-based Offline Reinforcement Learning
 
 This repository implements a generic algorithmic framework for ensemble-based offline RL, which enables easy experimentation and ablation of key design choices of different algorithms.
-This framework is the subject of my Master's thesis, available [here](https://is.muni.cz/th/dxwqj/).
+This framework is the subject of our paper, available [here](mind_your_own_target.pdf), as well as my Master's thesis, which you can read [here](https://is.muni.cz/th/dxwqj/).
 
 
 The framework generalizes several uncertainty-based offline RL algorithms, namely:
